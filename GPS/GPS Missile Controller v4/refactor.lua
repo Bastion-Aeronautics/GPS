@@ -96,8 +96,6 @@ roll_control = 0
 function onTick()
 	launched = input.getBool(1)
 
-	radar_lock = input.getBool(2)
-
 	gps_x, gps_y, gps_z = input.getNumber(1), input.getNumber(2), input.getNumber(3)
 	gps = vec(gps_x, gps_y, gps_z)
 
@@ -107,6 +105,8 @@ function onTick()
 	end
 
 	radar_x, radar_y = input.getNumber(10), input.getNumber(11)
+
+	radar_lock = (radar_x ~= 0 or radar_y ~= 0)
 
 	pitch_tilt, roll_tilt = input.getNumber(15), input.getNumber(16)
 
@@ -135,10 +135,20 @@ function onTick()
 	roll_setpoint = 0
 	roll_control = roll_setpoint - roll_tilt
 
-	if GUIDANCE_MODE == 0 and guidance then
+	-- Terminal radar guidance
+	if radar_lock then
+
+		yaw_control = radar_x * TERMINAL_GAIN
+		pitch_control = radar_y * TERMINAL_GAIN
+
+	-- Direct guidance
+	elseif GUIDANCE_MODE == 0 and guidance then
+
+		terminal = true
 		yaw_control = math.atan(local_offset.x, local_offset.z)
 		pitch_control = math.atan(local_offset.y, local_offset.z)
 
+	-- Cruise and dive
 	elseif GUIDANCE_MODE == 1 and guidance then
 
 		if (distance_to_target_horizontal < DIVE_DISTANCE) 	then state = 1 end
@@ -154,17 +164,29 @@ function onTick()
 			terminal = true
 			yaw_control = 	math.atan(local_offset.x, local_offset.z)
 			pitch_control = math.atan(local_offset.y, local_offset.z)
-		
-		elseif state == 2 then
-			yaw_control = 	radar_x
-			pitch_control = radar_y
+		end
+	
+	-- Ballistic trajectory
+	elseif GUIDANCE_MODE == 2 and guidance then
 
+		if state == 0 then
+			towards = to_local(vec(global_offset.x, CRUISE_ALTITUDE, global_offset.z))
+
+			if vec_length(towards) > 100 then
+				yaw_control = math.atan(towards.x, towards.z)
+				pitch_control = math.atan(towards.y, towards.z)
+			else
+				state = 1
+			end
+
+		elseif state == 1 then
+
+			terminal = true
+			yaw_control = math.atan(local_offset.x, local_offset.z)
+			pitch_control = math.atan(local_offset.y, local_offset.z)
+			
 		end
 	end
-
-	-- elseif GUIDANCE_MODE == 2 and guidance then
-		-- oh no I havent done that part yet
-	-- end
 
 
 	if EJECTION_TURN ~= 0 and elapsed < EJECTION_DURATION then
