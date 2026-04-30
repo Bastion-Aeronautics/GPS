@@ -191,7 +191,7 @@ function onTick()
 	end
 
 
-	if EJECTION_TURN ~= 0 then
+	if EJECTION_TURN ~= 0 and elapsed < EJECTION_DURATION then
 		if EJECTION_TURN == 1 then
 			pitch_control = 1
 		elseif EJECTION_TURN == 2 then
