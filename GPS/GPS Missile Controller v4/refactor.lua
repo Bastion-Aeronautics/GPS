@@ -82,6 +82,8 @@ ALTITUDE_TRIM = 		property.getNumber("Altitude Trim")
 
 TERMINAL_GAIN = 		property.getNumber("Terminal Gain")
 
+TOP_DOWN_PROFILE =	  property.getNumber("Top Down Profile")
+
 elapsed = 0
 state = 0
 active = false
@@ -138,10 +140,10 @@ function onTick()
 	roll_control = roll_setpoint - roll_tilt
 
 	-- Terminal radar guidance
-	if radar_lock  and terminal then
+	if radar_lock and terminal then
 
-		yaw_control = radar_x * TERMINAL_GAIN
-		pitch_control = radar_y * TERMINAL_GAIN
+		yaw_control = (radar_x * TERMINAL_GAIN) / GUIDANCE_GAIN
+		pitch_control = (radar_y * TERMINAL_GAIN) / GUIDANCE_GAIN
 
 	-- Direct guidance
 	elseif GUIDANCE_MODE == 0 and guidance then
@@ -174,7 +176,7 @@ function onTick()
 		if state == 0 then
 			towards = to_local(vec_sub(vec(target.x, target.y + CRUISE_ALTITUDE, target.z), gps))
 
-			if vec_length(towards) > CRUISE_ALTITUDE then
+			if vec_length(towards) > (CRUISE_ALTITUDE * TOP_DOWN_PROFILE) then
 				yaw_control = math.atan(towards.x, towards.z)
 				pitch_control = math.atan(towards.y, towards.z)
 			else
