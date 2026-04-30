@@ -152,6 +152,7 @@ function onTick()
 			pitch_control = radar_y
 
 		end
+	end
 
 	-- elseif GUIDANCE_MODE == 2 and guidance then
 		-- oh no I havent done that part yet
