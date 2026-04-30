@@ -80,6 +80,8 @@ ROLL_TRIM = 			property.getNumber("Roll Trim")
 
 ALTITUDE_TRIM = 		property.getNumber("Altitude Trim")
 
+TERMINAL_GAIN = 		property.getNumber("Terminal Gain")
+
 elapsed = 0
 state = 0
 active = false
@@ -136,7 +138,7 @@ function onTick()
 	roll_control = roll_setpoint - roll_tilt
 
 	-- Terminal radar guidance
-	if radar_lock then
+	if radar_lock  and terminal then
 
 		yaw_control = radar_x * TERMINAL_GAIN
 		pitch_control = radar_y * TERMINAL_GAIN
@@ -172,7 +174,7 @@ function onTick()
 		if state == 0 then
 			towards = to_local(vec_sub(vec(target.x, target.y + CRUISE_ALTITUDE, target.z), gps))
 
-			if vec_length(towards) > CRUISE_ALTITUDE/2 then
+			if vec_length(towards) > CRUISE_ALTITUDE then
 				yaw_control = math.atan(towards.x, towards.z)
 				pitch_control = math.atan(towards.y, towards.z)
 			else
@@ -189,8 +191,16 @@ function onTick()
 	end
 
 
-	if EJECTION_TURN ~= 0 and elapsed < EJECTION_DURATION then
-		pitch_control = EJECTION_TURN
+	if EJECTION_TURN ~= 0 then
+		if EJECTION_TURN == 1 then
+			pitch_control = 1
+		elseif EJECTION_TURN == 2 then
+			pitch_control = -1
+		elseif EJECTION_TURN == 3 then
+			yaw_control = -1
+		elseif EJECTION_TURN == 4 then
+			yaw_control = 1
+		end
 	end
 
 	-- End of guidance logic --
