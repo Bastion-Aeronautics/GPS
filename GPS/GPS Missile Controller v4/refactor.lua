@@ -166,14 +166,13 @@ function onTick()
 			pitch_control = math.atan(local_offset.y, local_offset.z)
 		end
 	
-	-- Ballistic trajectory
+	-- Top Attack trajectory
 	elseif GUIDANCE_MODE == 2 and guidance then
 
 		if state == 0 then
-			towards = to_local(vec(global_offset.x, CRUISE_ALTITUDE, global_offset.z))
+			towards = to_local(vec_sub(vec(target.x, target.y + CRUISE_ALTITUDE, target.z), gps))
 
-			-- note: make 100 a changeable variable probably (this is the waypoint hit threshold)
-			if vec_length(towards) > 100 then
+			if vec_length(towards) > CRUISE_ALTITUDE/2 then
 				yaw_control = math.atan(towards.x, towards.z)
 				pitch_control = math.atan(towards.y, towards.z)
 			else
