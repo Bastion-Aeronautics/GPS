@@ -48,37 +48,50 @@ function to_local(vec) return vec(vec_dot(vec, local_x), vec_dot(vec, local_y), 
 
 -- Altitude Trim: the angle the missile needs to hold to maintain altitude
 
-ACTIVATION_DELAY = property.getNumber("Activation Delay") -- in ticks
-GUIDANCE_DELAY = property.getNumber("Guidance Delay")
+ACTIVATION_DELAY = 		property.getNumber("Activation Delay") -- in ticks
+GUIDANCE_DELAY = 		property.getNumber("Guidance Delay")
 
-GUIDANCE_MODE = property.getNumber("Guidance Mode") -- 0 for direct, 1 for cruising, 2 for ballistic
+GUIDANCE_MODE = 		property.getNumber("Guidance Mode") -- 0 for direct, 1 for cruising, 2 for ballistic
 
-EJECTION_TURN = property.getNumber("Ejection Turn") -- 0 for none, 1 for up, 2 for down
+EJECTION_TURN = 		property.getNumber("Ejection Turn") -- 0 for none, 1 for up, 2 for down
 
-ROLL_CONTROL = property.getBool("Roll Control")
-ROLL_GAIN = property.getNumber("Roll Gain")
-MAX_ROLL = property.getNumber("Max Roll") / DEG -- in degrees
+ROLL_CONTROL = 			property.getBool("Roll Control")
+ROLL_GAIN = 			property.getNumber("Roll Gain")
+MAX_ROLL = 				property.getNumber("Max Roll") / DEG -- in degrees
 
-TERRAIN_FOLLOWING = property.getBool("Terrain Following")
-FOLLOW_ANGLE = property.getNumber("Follow Angle") / DEG -- in degrees
-FOLLOW_MAX_DISTANCE = property.getNumber("Follow Max Distance")
-FOLLOW_MIN_DISTANCE = property.getNumber("Follow Min Distance")
+TERRAIN_FOLLOWING = 	property.getBool("Terrain Following")
+FOLLOW_ANGLE = 			property.getNumber("Follow Angle") / DEG -- in degrees
+FOLLOW_MAX_DISTANCE = 	property.getNumber("Follow Max Distance")
+FOLLOW_MIN_DISTANCE = 	property.getNumber("Follow Min Distance")
 
-MAX_ANGLE = property.getNumber("Max Angle") / DEG -- in degrees
-CRUISE_ALTITUDE = property.getNumber("Cruise Altitude")
-ALTITUDE_GAIN = property.getNumber("Altitude Gain")
+MAX_ANGLE = 			property.getNumber("Max Angle") / DEG -- in degrees
+CRUISE_ALTITUDE = 		property.getNumber("Cruise Altitude")
+ALTITUDE_GAIN = 		property.getNumber("Altitude Gain")
 
-DIVE_DISTANCE = property.getNumber("Dive Distance")
+DIVE_DISTANCE = 		property.getNumber("Dive Distance")
 
-GUIDANCE_GAIN = property.getNumber("Guidance Gain")
+GUIDANCE_GAIN = 		property.getNumber("Guidance Gain")
 
-YAW_TRIM = property.getNumber("Yaw Trim")
-PITCH_TRIM = property.getNumber("Pitch Trim")
+YAW_TRIM = 				property.getNumber("Yaw Trim")
+PITCH_TRIM = 			property.getNumber("Pitch Trim")
+ROLL_TRIM = 			property.getNumber("Roll Trim")
 
-ALTITUDE_TRIM = property.getNumber("Altitude Trim")
+ALTITUDE_TRIM = 		property.getNumber("Altitude Trim")
+
+elapsed = 0
+aimpoint = vec(0,0,0)
+active = false
+guidance = false
+terminal = false
 
 function onTick()
+	target_x, target_y, target_z = input.getNumber(7), input.getNumber(8), input.getNumber(9)
+	target = vec(target_x, target_y, target_z)
+
 	gps_x, gps_y, gps_z = input.getNumber(1), input.getNumber(2), input.getNumber(3)
+	gps = vec(gps_x, gps_y, gps_z)
+
+	pitch_tilt, roll_tilt = input.getNumber(15), input.getNumber(16)
 
 	rx, ry, rz = input.getNumber(4), input.getNumber(5), input.getNumber(6)
 	cx, cy, cz = m.cos(rx), m.cos(ry), m.cos(rz)
@@ -89,11 +102,31 @@ function onTick()
 	local_y = vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy) --up
 	local_z = vec_cross(local_x,local_y) 	            --forward
 
+	global_offset = vec_sub(target, gps)
 
+	distance_to_target = vec_length(global_offset)
+	distance_to_target_horizontal = vec_length(vec(global_offset.x, 0, global_offset.z))
 
 	local_offset = to_local(aimpoint)
 
-
 	yaw_to_target = m.atan(local_offset.x, local_offset.z)
 	pitch_to_target = m.atan(local_offset.y, local_offset.z)
+
+	-- Guidance logic
+	if GUIDANCE_MODE == 0 and guidance then
+		yaw_control = yaw_to_target
+		pitch_control = pitch_to_target
+	elseif GUIDANCE_MODE == 1 and guidance then
+
+	elseif GUIDANCE_MODE == 2 and guidance then
+
+	end
+
+	output.setNumber(1, yaw_control 	* GUIDANCE_GAIN 	+ YAW_TRIM	)
+	output.setNumber(2, pitch_control 	* GUIDANCE_GAIN 	+ PITCH_TRIM)
+	if ROLL_CONTROL then output.setNumber(3, roll_control * ROLL_GAIN + ROLL_TRIM) end
+
+	output.setBool(1, active)
+	output.setBool(2, guidance)
+	output.setBool(3, terminal)
 end
