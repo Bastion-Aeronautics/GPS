@@ -62,9 +62,7 @@ MAX_ROLL = 				property.getNumber("Max Roll") / 360 -- in degrees
 MAX_ROLL_TURN = 		property.getNumber("Max Roll Turn") / 360 -- in degrees, only used if Roll Control is true
 
 TERRAIN_FOLLOWING = 	property.getBool  ("Terrain Following")
-FOLLOW_ANGLE = 			property.getNumber("Follow Angle") * DEG -- in degrees
-FOLLOW_MAX_DISTANCE = 	property.getNumber("Follow Max Distance")
-FOLLOW_MIN_DISTANCE = 	property.getNumber("Follow Min Distance")
+FOLLOW_HEIGHT = 		property.getNumber("Follow HEIGHT") -- in meters
 
 MAX_ANGLE = 			property.getNumber("Max Angle") * DEG -- in degrees
 CRUISE_ALTITUDE = 		property.getNumber("Cruise Altitude")
@@ -81,8 +79,6 @@ ROLL_TRIM = 			property.getNumber("Roll Trim")
 ALTITUDE_TRIM = 		property.getNumber("Altitude Trim")
 
 TERMINAL_GAIN = 		property.getNumber("Terminal Gain")
-
-TOP_DOWN_PROFILE =	  property.getNumber("Top Down Profile")
 
 elapsed = 0
 state = 0
@@ -109,6 +105,8 @@ function onTick()
 	end
 
 	radar_x, radar_y = input.getNumber(10), input.getNumber(11)
+
+	terrain_sensor = input.getNumber(12)
 
 	radar_lock = (radar_x ~= 0 or radar_y ~= 0)
 
@@ -159,7 +157,18 @@ function onTick()
 		if (radar_lock and state == 1) 						then state = 2 end
 
 		if state == 0 then
-			pitch_setpoint = clamp((CRUISE_ALTITUDE - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+
+			if TERRAIN_FOLLOWING then
+				altitude_error = CRUISE_ALTITUDE - gps_y
+				terrain_error = FOLLOW_HEIGHT - terrain_sensor
+
+				combined_error = math.max(altitude_error, terrain_error)
+				pitch_setpoint = clamp(combined_error * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+				
+			else
+				pitch_setpoint = clamp((CRUISE_ALTITUDE - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+			end
+
 			towards = to_local(vec(global_offset.x, (math.tan(pitch_setpoint)) * distance_to_target_horizontal, global_offset.z))
 
 			yaw_control = math.atan(towards.x, towards.z)
@@ -176,7 +185,7 @@ function onTick()
 		if state == 0 then
 			towards = to_local(vec_sub(vec(target.x, target.y + CRUISE_ALTITUDE, target.z), gps))
 
-			if vec_length(towards) > (CRUISE_ALTITUDE * TOP_DOWN_PROFILE) then
+			if vec_length(towards) > CRUISE_ALTITUDE then
 				yaw_control = math.atan(towards.x, towards.z)
 				pitch_control = math.atan(towards.y, towards.z)
 			else
