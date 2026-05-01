@@ -85,6 +85,8 @@ TERMINAL_GAIN = 		property.getNumber("Terminal Gain")
 POP_UP_HEIGHT = 		property.getNumber("Pop-up Height")
 POP_UP_DISTANCE = 		property.getNumber("Pop-up Distance")
 
+MAX_DEFLECTION = 		property.getNumber("Max Deflection")
+
 elapsed = 0
 state = 0
 active = false
@@ -99,6 +101,8 @@ pitch_control = 0
 roll_control = 0
 
 function onTick()
+	debug_state = 0
+
 	launched = input.getBool(1)
 
 	gps_x, gps_y, gps_z = input.getNumber(1), input.getNumber(2), input.getNumber(3)
@@ -121,7 +125,6 @@ function onTick()
 	cx, cy, cz = math.cos(rx), math.cos(ry), math.cos(rz)
 	sx, sy, sz = math.sin(rx), math.sin(ry), math.sin(rz)
 
-    -- Generates vectors representing the missile's local axes
 	local_x = vec(cy*cz,cy*sz,-sy)			            --right
 	local_y = vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy) --up
 	local_z = vec_cross(local_x,local_y) 	            --forward
@@ -145,11 +148,15 @@ function onTick()
 	-- Terminal radar guidance
 	if radar_lock and terminal then
 
+		debug_state = 6
+
 		yaw_control = (radar_x * TERMINAL_GAIN) / GUIDANCE_GAIN
 		pitch_control = (radar_y * TERMINAL_GAIN) / GUIDANCE_GAIN
 
 	-- Direct guidance
 	elseif GUIDANCE_MODE == 0 and guidance then
+
+		debug_state = 5
 
 		terminal = true
 		yaw_control = math.atan(local_offset.x, local_offset.z)
@@ -162,11 +169,15 @@ function onTick()
 
 		if state == 0 then
 
+			debug_state = 2
+
 			if TERRAIN_FOLLOWING then
 				altitude_error = CRUISE_ALTITUDE - gps_y
 				terrain_error = FOLLOW_HEIGHT - terrain_sensor
 
 				pitch_setpoint = math.max(clamp(altitude_error * ALTITUDE_GAIN,-MAX_ANGLE,MAX_ANGLE), clamp(terrain_error * FOLLOW_GAIN, -MAX_FOLLOW_ANGLE, MAX_FOLLOW_ANGLE))
+				
+				if terrain_error > altitude_error then debug_state = 7 end
 				
 			else
 				pitch_setpoint = clamp((CRUISE_ALTITUDE - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
@@ -177,12 +188,15 @@ function onTick()
 			yaw_control = math.atan(towards.x, towards.z)
 			pitch_control = math.atan(towards.y, towards.z)
 		elseif state == 1 then
+
+			debug_state = 4
+
 			terminal = true
 			yaw_control = 	math.atan(local_offset.x, local_offset.z)
 			pitch_control = math.atan(local_offset.y, local_offset.z)
 		end
 	
-	-- Top Attack trajectory
+	-- pop up trajectory
 	elseif GUIDANCE_MODE == 2 and guidance then
 
 		if (distance_to_target_horizontal < POP_UP_DISTANCE)then state = 1 end
@@ -190,11 +204,13 @@ function onTick()
 
 		if state == 0 then
 
+			debug_state = 2
+
 			if TERRAIN_FOLLOWING then
 				altitude_error = CRUISE_ALTITUDE - gps_y
 				terrain_error = FOLLOW_HEIGHT - terrain_sensor
 
-				pitch_setpoint = math.max(clamp(altitude_error * ALTITUDE_GAIN,-MAX_ANGLE,MAX_ANGLE), clamp(terrain_error * FOLLOW_GAIN, -MAX_FOLLOW_ANGLE, MAX_FOLLOW_ANGLE))
+				pitch_setpoint = math.max(clamp(altitude_error * ALTITUDE_GAIN,(-5*DEG),MAX_ANGLE), clamp(terrain_error * FOLLOW_GAIN, -MAX_FOLLOW_ANGLE, MAX_FOLLOW_ANGLE))
 				
 			else
 				pitch_setpoint = clamp((CRUISE_ALTITUDE - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
@@ -206,8 +222,10 @@ function onTick()
 			pitch_control = math.atan(towards.y, towards.z)
 
 		elseif state == 1 then
+
+			debug_state = 3
 		
-			pitch_setpoint = clamp((target.y + POP_UP_HEIGHT - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+			pitch_setpoint = clamp(((target.y + POP_UP_HEIGHT) - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
 
 			towards = to_local(vec(global_offset.x, (math.tan(pitch_setpoint)) * distance_to_target_horizontal, global_offset.z))
 
@@ -215,6 +233,9 @@ function onTick()
 			pitch_control = math.atan(towards.y, towards.z)
 
 		elseif state == 2 then
+
+			debug_state = 4
+
 			terminal = true
 			yaw_control = 	math.atan(local_offset.x, local_offset.z)
 			pitch_control = math.atan(local_offset.y, local_offset.z)
@@ -223,7 +244,10 @@ function onTick()
 	end
 
 
-	if EJECTION_TURN ~= 0 and elapsed < EJECTION_DURATION then
+	if launched and EJECTION_TURN ~= 0 and elapsed < EJECTION_DURATION then
+
+		debug_state = 1
+
 		if EJECTION_TURN == 1 then
 			pitch_control = 1
 		elseif EJECTION_TURN == 2 then
@@ -237,13 +261,16 @@ function onTick()
 
 	-- End of guidance logic --
 
-	output.setNumber(1, yaw_control 	* GUIDANCE_GAIN 	+ YAW_TRIM	)
-	output.setNumber(2, pitch_control 	* GUIDANCE_GAIN 	+ PITCH_TRIM)
+	output.setNumber(1, clamp(yaw_control * GUIDANCE_GAIN + YAW_TRIM, -MAX_DEFLECTION, MAX_DEFLECTION))
+	output.setNumber(2, clamp(pitch_control * GUIDANCE_GAIN + PITCH_TRIM, -MAX_DEFLECTION, MAX_DEFLECTION))
 	if ROLL_CONTROL then output.setNumber(3, roll_control * ROLL_GAIN + ROLL_TRIM) end
 
 	output.setBool(1, active)
 	output.setBool(2, guidance)
 	output.setBool(3, terminal)
+	
+	output.setNumber(4, debug_state)
+	-- 0: waiting 1: ejecting 2: cruising 3: popping up 4: diving 5: direct 6: terminal 7: terrain
 
 	elapsed = launched and elapsed + 1 or 0
 end
