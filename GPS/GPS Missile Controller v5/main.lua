@@ -172,8 +172,8 @@ function onTick()
 			debug_state = 2
 
 			if TERRAIN_FOLLOWING then
-				altitude_error = clamp(CRUISE_ALTITUDE - gps_y * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
-				terrain_error = clamp(FOLLOW_HEIGHT - terrain_sensor * FOLLOW_GAIN, MIN_FOLLOW_ANGLE, MAX_FOLLOW_ANGLE)
+				altitude_error = clamp((CRUISE_ALTITUDE - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+				terrain_error = clamp((FOLLOW_HEIGHT - terrain_sensor) * FOLLOW_GAIN, MIN_FOLLOW_ANGLE, MAX_FOLLOW_ANGLE)
 
 				if terrain_error > 0 then debug_state = 7 end
 
@@ -207,8 +207,8 @@ function onTick()
 			debug_state = 2
 
 			if TERRAIN_FOLLOWING then
-				altitude_error = clamp(CRUISE_ALTITUDE - gps_y * ALTITUDE_GAIN,(-10*DEG),MAX_ANGLE)
-				terrain_error = clamp(FOLLOW_HEIGHT - terrain_sensor * FOLLOW_GAIN, -MAX_FOLLOW_ANGLE, MAX_FOLLOW_ANGLE)
+				altitude_error = clamp((CRUISE_ALTITUDE - gps_y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+				terrain_error = clamp((FOLLOW_HEIGHT - terrain_sensor) * FOLLOW_GAIN, MIN_FOLLOW_ANGLE, MAX_FOLLOW_ANGLE)
 
 				if terrain_error > 0 then debug_state = 7 end
 
