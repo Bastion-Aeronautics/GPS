@@ -1,6 +1,6 @@
 # Hive 2 datalink standard
 
-**Boolean Channe.s**
+**Boolean Channels**
 - 1: A vehicle exists on this channel
 - 2:
 
