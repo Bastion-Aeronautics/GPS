@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     input("Press Enter to run performance test")
 
-    start_time = t.time()
+    start_time = t.perf_counter()
 
     print("\n")
     print("\033[2mRunning tests\033[0m")
@@ -106,7 +106,7 @@ if __name__ == "__main__":
         for height in range(-100, 100):
             result_offset, result_time, success, drop = on_tick(distance, height)
 
-    end_time = t.time()
+    end_time = t.perf_counter()
     print("")
     print(f"Ran 1 million calculation cycles in {end_time - start_time:.2f} seconds")
     print(f"\033[1m\033[32mAverage cycle time: {(end_time - start_time) / 1000000 * 1000000:.2f}us\033[0m")
