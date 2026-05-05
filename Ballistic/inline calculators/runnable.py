@@ -122,8 +122,3 @@ if __name__ == "__main__":
         print(f"Failed to find solution for distance {test_distance}")
 
     input("Press Enter to continue")
-
-    for dist in range(0, 5000):
-        result_offset, result_time, success, drop = on_tick(dist)
-        if success:
-            print(f"Distance: {dist} m, Time: {result_time:.4f} s, Drop Angle: {drop*(180/math.pi):.4f} degrees")
