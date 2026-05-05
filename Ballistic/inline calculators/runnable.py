@@ -13,14 +13,14 @@ drag = 0.002 * 60              # Drag coefficient, scaled by 60 (likely for per-
 lifeSpan = 1500 / 60           # Maximum lifespan of the projectile in seconds (converted from ticks)
 
 gravity = 30                   # Gravity acceleration (units per second squared)
-error = 0.01                    # Error tolerance for the solution (acceptable vertical error in units)
+error = 0.001                    # Error tolerance for the solution (acceptable vertical error in units)
 
 # Global variables for output
 offset = 0
 time = 0
 
 
-def solve(dist):
+def solve(dist, height):
     """
     Function to solve for the firing angle given a target distance.
     Uses an iterative method to find the angle where the projectile hits the target.
@@ -32,13 +32,13 @@ def solve(dist):
         tuple: (angle in radians, time of flight, success flag)
     """
     x = dist                    # Horizontal distance to target
-    yT = 0                      # Target vertical position (assuming flat ground)
+    yT = height                      # Target vertical position (assuming flat ground)
 
     a = 0                       # Initial guess for angle (radians)
     t = 0                       # Time of flight
 
     # Iterate up to 10 times to refine the angle
-    for k in range(1, 11):
+    for k in range(1, 16):
         vx = muzzle_velocity * math.cos(a)   # Horizontal component of velocity
         vy = muzzle_velocity * math.sin(a)   # Vertical component of velocity
 
@@ -48,11 +48,16 @@ def solve(dist):
 
         y = get_y(vy, t)        # Calculate vertical position at time t
 
-        if y >= yT - error:     # Check if vertical position is within error tolerance
+        if abs(y - yT) < error:     # Check if vertical position is within error tolerance
             return a, t, True   # Return angle, time, and success flag
 
+
+        print(f"Time: {t:.0f} ticks, Y: {y:.3f}, Angle: {math.degrees(a):.4f} degrees")  # Debug output
+
         # Adjust angle using atan approximation for correction
-        a = a - math.atan2(y, x)
+        a = a - math.atan2(y - yT, x)
+
+
 
     return a, t, False          # Return angle, time, and failure flag after max iterations
 
@@ -87,19 +92,20 @@ def get_time(v, x):
     return -math.log(1 - drag * x / v) / drag
 
 
-def on_tick(dist):
+def on_tick(dist, height):
     """
     Main tick function, called every simulation tick.
     
     Args:
         dist: Current target distance
+        height: Current target height
     
     Returns:
         tuple: (offset, time, success flag)
     """
     global offset, time
     
-    drp, t, ok = solve(dist)  # Solve for drop angle and success flag
+    drp, t, ok = solve(dist, height)  # Solve for drop angle and success flag
     if ok:
         offset = dist * math.tan(drp)  # Calculate horizontal offset for aiming
         time = t                       # Set time of flight
@@ -111,14 +117,24 @@ def on_tick(dist):
 # Example usage
 if __name__ == "__main__":
     # Test the ballistic calculator
-    test_distance = 5000
-    result_offset, result_time, success, drop = on_tick(test_distance)
-    
+    test_distance = 800
+    test_height = -300  # Assuming target is at the same height as the shooter
+
+    print("\n\n")
+    if test_height >= 0:
+        print(f"Firing at {test_distance}m away, {test_height}m up")
+    else:
+        print(f"Firing at {test_distance}m away, {-test_height}m down")
+    print()
+
+    result_offset, result_time, success, drop = on_tick(test_distance, test_height)
+
     if success:
-        print(f"Target distance: {test_distance} meters")
-        print(f"Firing angle offset: {drop*(180/math.pi):.4f} degrees")
+        print()
+        print(f"Firing angle: {drop*(180/math.pi):.4f} degrees")
         print(f"Time to target: {result_time:.4f} seconds")
     else:
+        print()
         print(f"Failed to find solution for distance {test_distance}")
 
-    input("Press Enter to continue")
+    print("\n")
