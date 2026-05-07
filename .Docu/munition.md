@@ -18,7 +18,10 @@ A low profile short range missile that can be used against ground targets and sl
 But also caused all missiles in this generation to require roll fins as the guidance system does not take roll into account.</i>
 
 <b>RAGM-3</b><br>
-A 3x3 GPS missile, the bastion made missile to utilize a custom guidance path for increase effectiveness
+A 3x3 GPS missile, the first Bastion made missile to utilize a custom guidance path for increase effectiveness, allowing it to hit the thinner roof of a tank.
+
+<b>IRBM-5</b><br>
+One of the first truly standoff range missiles, featuring a high enough speed to accurately hit a target in the Arctic from Sawyer in under 10 minutes.
 
 ## Third Generation
 <i>Instead of using two individual axis for GPS guidance, the third generation of GPS munitions utilizes a <b>Vector based system</b>, entirely eliminating gimbal locking and the need for roll control.</i>
