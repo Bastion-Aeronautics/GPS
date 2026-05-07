@@ -14,7 +14,7 @@ A low profile short range missile that can be used against ground targets and sl
 <b>R-5x</b><br>
 
 ## Second Generation
-<i>The Second generation of missiles used a <b>Bearing & Pitch GPS guidance</b>> system, giving missiles significantly better range.<br> 
+<i>The Second generation of missiles used a <b>Bearing & Pitch GPS guidance</b> system, giving missiles significantly better range.<br> 
 But also caused all missiles in this generation to require roll fins as the guidance system does not take roll into account.</i>
 
 <b>RAGM-3</b><br>
@@ -28,6 +28,9 @@ One of the first truly standoff range missiles, featuring a high enough speed to
 
 <b>RAGM-1</b><br>
 A 1x1 low profile GPS missile with a 20km max range and a top-down attack pattern
+
+<b>IRBM-3</b><br>
+A complete full package upgrade of the previous IRBM-5, allowing smoother vertical launching, higher speed and light chaff resistance
 
 <b>GB-1</b><br>
 A small guided bomb for stationary targets, usually used on smaller aircraft that are incapable of carrying large munitions, or need to ditch the booster to save weight.
