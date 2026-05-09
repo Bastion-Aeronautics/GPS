@@ -1,5 +1,6 @@
 # Creating a Web server using Python and Flask
 from flask import Flask
+import logging
 app = Flask('app')
 
 click = False
@@ -15,5 +16,7 @@ def toggleClick():
 def readClick():
     global click
     return str(click)
+
+logging.getLogger('werkzeug').disabled = True # Disable Flask's default logging
 
 app.run(host = '0.0.0.0', port = 1575)
