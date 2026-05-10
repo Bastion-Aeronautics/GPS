@@ -14,7 +14,7 @@ def updatePosition():
     trajectory.append((float(current_x), float(current_y), float(current_z))) # Store the position as a tuple in the trajectory list
     print(f"Position: {float(current_x):.0f}, {float(current_y):.0f}, {float(current_z):.0f}")
     return "OK"
-
+plot_shit(trajectory)
 logging.getLogger('werkzeug').disabled = True # Disable Flask's default logging
 
 app.run(host = '0.0.0.0', port = 65454)
