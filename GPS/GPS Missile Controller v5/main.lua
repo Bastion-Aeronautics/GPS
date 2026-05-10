@@ -281,7 +281,7 @@ function onTick()
 
 	-- HTTP Debugging  system --
 	if HTTP_DEBUG then
-		async.httpGet(DEBUG_PORT, '/updatePosition')
+		async.httpGet(DEBUG_PORT, '/updatePosition?x='..gps_x..'&y='..gps_y..'&z='..gps_z)
 	end
 
 
@@ -289,15 +289,5 @@ function onTick()
 end
 
 function httpReply(port, request_body, response_body)
-    if request_body == '/readClick' then --returns what we asked for
-        if response_body == "True" then  --python bools are capitalized
-            bool = true
-        elseif response_body == "False" then
-            bool = false
-        else --just in case
-            bool = false
-        end
-    else
-        --request body doesnt work?
-    end
+    -- nothing for now
 end
