@@ -63,9 +63,9 @@ MAX_ROLL_TURN = 		property.getNumber("Max Roll Turn") / 360 -- in degrees, only 
 
 TERRAIN_FOLLOWING = 	property.getBool  ("Terrain Following")
 FOLLOW_HEIGHT = 		property.getNumber("Follow Height") -- in meters
-FOLLOW_GAIN = 		  property.getNumber("Follow Pitch Gain")
-MAX_FOLLOW_ANGLE = 	 property.getNumber("Max Follow Angle") * DEG
-MIN_FOLLOW_ANGLE = 	 property.getNumber("Min Follow Angle") * DEG
+FOLLOW_GAIN = 		  	property.getNumber("Follow Pitch Gain")
+MAX_FOLLOW_ANGLE = 	 	property.getNumber("Max Follow Angle") * DEG
+MIN_FOLLOW_ANGLE = 	 	property.getNumber("Min Follow Angle") * DEG
 
 MAX_ANGLE = 			property.getNumber("Max Angle") * DEG -- in degrees
 CRUISE_ALTITUDE = 		property.getNumber("Cruise Altitude")
@@ -87,6 +87,9 @@ POP_UP_HEIGHT = 		property.getNumber("Pop-up Height")
 POP_UP_DISTANCE = 		property.getNumber("Pop-up Distance")
 
 MAX_DEFLECTION = 		property.getNumber("Max Deflection")
+
+HTTP_DEBUG = 			property.getBool("HTTP Debug")
+DEBUG_PORT = 			property.getNumber("Debug Port")
 
 elapsed = 0
 state = 0
