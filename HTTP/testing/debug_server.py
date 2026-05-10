@@ -25,12 +25,13 @@ app = Flask('app')
 
 trajectory = [] # This list will store the trajectory points
 missile_hit = False
+missile_launched = False
 last_update_time = time.time()
 
 def monitor_timeout():
-    global missile_hit, last_update_time
+    global missile_hit, last_update_time, missile_launched
     while True:
-        if time.time() - last_update_time > 5 and not missile_hit:
+        if time.time() - last_update_time > 5 and not missile_hit and missile_launched:
             missile_hit = True
             print("Missile has hit the target (timeout)")
             plot_shit(trajectory)
