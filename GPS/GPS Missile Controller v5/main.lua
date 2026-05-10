@@ -278,5 +278,26 @@ function onTick()
 	output.setNumber(4, debug_state)
 	-- 0: waiting 1: ejecting 2: cruising 3: popping up 4: diving 5: direct 6: terminal 7: terrain
 
+
+	-- HTTP Debugging  system --
+	if HTTP_DEBUG then
+		async.httpGet(DEBUG_PORT, '/updatePosition')
+	end
+
+
 	elapsed = launched and elapsed + 1 or 0
+end
+
+function httpReply(port, request_body, response_body)
+    if request_body == '/readClick' then --returns what we asked for
+        if response_body == "True" then  --python bools are capitalized
+            bool = true
+        elseif response_body == "False" then
+            bool = false
+        else --just in case
+            bool = false
+        end
+    else
+        --request body doesnt work?
+    end
 end
