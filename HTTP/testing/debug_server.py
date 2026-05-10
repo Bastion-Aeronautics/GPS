@@ -17,6 +17,7 @@ def monitor_timeout():
         if time.time() - last_update_time > 5 and not missile_hit:
             missile_hit = True
             print("Missile has hit the target (timeout)")
+            plot_shit(trajectory)
         time.sleep(1)
 
 @app.route('/updatePosition') # This function can be called to update the position
@@ -32,7 +33,7 @@ def updatePosition():
     last_update_time = time.time()
     missile_hit = False  # Reset on new update
     return "OK"
-plot_shit(trajectory)
+
 logging.getLogger('werkzeug').disabled = True # Disable Flask's default logging
 
 # Start the timeout monitor thread
