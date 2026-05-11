@@ -1,1 +1,0 @@
-Lowk I gotta actually add the ability to assign waypoints
