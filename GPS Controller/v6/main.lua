@@ -29,6 +29,7 @@ end
 function toLocal(A, ijk) vec(vec_dot(A, ijk.x), vec_dot(A, ijk.y), vec_dot(A, ijk.z)) end
 function toGlobal(A, ijk) vec_add(vec_scal(ijk.x, A.x), vec_add(vec_scal(ijk.y, A.y), vec_scal(ijk.z, A.z))) end
 
+
 -- Property Settings --
 
 
@@ -64,6 +65,12 @@ function toGlobal(A, ijk) vec_add(vec_scal(ijk.x, A.x), vec_add(vec_scal(ijk.y, 
 
 SELF_TUNE = prop("Mode") 
 function onTick()
+
+    current_X, current_Y, current_Z = input.getNumber(1), input.getNumber(2), input.getNumber(3)
+
+    rx, ry, rz = input.getNumber(4), input.getNumber(5), input.getNumber(6)
+    ijk = getIJK(rx, ry, rz)
+
     if not SELF_TUNE then
         -- guidance logic
 
