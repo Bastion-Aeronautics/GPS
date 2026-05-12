@@ -6,3 +6,4 @@
 - ⬛ Smarter terrain avoidance (preferably live mapping etc)
 - ⬛ Some sort of guidance law implemented (PN, APN)
 - ⬛ Output shaping and auto-trim
+- ⬛ More external support (Able to launch and send info from external sources)
