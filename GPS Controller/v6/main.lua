@@ -73,6 +73,8 @@ function onTick()
     add_waypoint_i = input.getBool(3)
     add_waypoint = add_waypoint_i and not add_waypoint_p
     add_waypoint_p = add_waypoint_i
+
+
     current_X, current_Y, current_Z = input.getNumber(1), input.getNumber(2), input.getNumber(3)
 
     rx, ry, rz = input.getNumber(4), input.getNumber(5), input.getNumber(6)
