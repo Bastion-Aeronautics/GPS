@@ -44,6 +44,7 @@ function vec_lerp(A,B,t) return vec_add(A,vec_scal(vec_sub(B,A),t)) end
 -- MAX Angle:           Maximum pitch angle allowed for altitude controller
 -- MIN Angle:           Minimum pitch angle allowed for altitude controller
 
+-- Altitude Gain:       Altitude Controller Gain in [ Degrees / Meter ]
 
 -- Self Tune: False: Normal, go to target as usual    True: Run self tuning routine
 
