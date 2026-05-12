@@ -66,6 +66,7 @@ function toGlobal(A, ijk) vec_add(vec_scal(ijk.x, A.x), vec_add(vec_scal(ijk.y, 
 SELF_TUNE = prop("Mode") 
 function onTick()
 
+    launched = input.getBool(1)
     current_X, current_Y, current_Z = input.getNumber(1), input.getNumber(2), input.getNumber(3)
 
     rx, ry, rz = input.getNumber(4), input.getNumber(5), input.getNumber(6)
