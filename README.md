@@ -1,2 +1,2 @@
-# Bastion Weapons Depot
-AWFUL lua scripts for HORRIBLE weapons systems
+# GPS Guided Munitions
+Any sort of missile or drone system involving going from A to B
