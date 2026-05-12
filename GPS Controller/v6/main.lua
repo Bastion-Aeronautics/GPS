@@ -17,6 +17,19 @@ function vec_norm(A) return vec_length(A)~=0 and vec_div(A,vec_length(A)) or vec
 function vec_cross(A,B) return vec(A.y*B.z-A.z*B.y,A.z*B.x-A.x*B.z,A.x*B.y-A.y*B.x) end
 function vec_lerp(A,B,t) return vec_add(A,vec_scal(vec_sub(B,A),t)) end
 
+function getIJK(rx, ry, rz)
+	local cx, cy, cz = math.cos(rx), math.cos(ry), math.cos(rz)
+	local sx, sy, sz = math.sin(rx), math.sin(ry), math.sin(rz)
+    local local_x = vec(cy*cz,cy*sz,-sy)			            --right
+	local local_y = vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy) --up
+	local local_z = vec_cross(local_x,local_y)
+    return vec(local_x, local_y, local_z)
+end
+
+function toLocal(A, ijk) vec(vec_dot(A, ijk.x), vec_dot(A, ijk.y), vec_dot(A, ijk.z)) end
+function toGlobal(A, ijk) vec_add(vec_scal(ijk.x, A.x), vec_add(vec_scal(ijk.y, A.y), vec_scal(ijk.z, A.z))) end
+
+
 -- Property Settings --
 
 
@@ -52,6 +65,12 @@ function vec_lerp(A,B,t) return vec_add(A,vec_scal(vec_sub(B,A),t)) end
 
 SELF_TUNE = prop("Mode") 
 function onTick()
+
+    current_X, current_Y, current_Z = input.getNumber(1), input.getNumber(2), input.getNumber(3)
+
+    rx, ry, rz = input.getNumber(4), input.getNumber(5), input.getNumber(6)
+    ijk = getIJK(rx, ry, rz)
+
     if not SELF_TUNE then
         -- guidance logic
 
