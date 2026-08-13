@@ -1,3 +1,8 @@
+pi=math.pi
+tau=math.pi*2
+function clamp(val, min, max) return math.min(math.max(val, min), max) end
+function lerp(a, b, t) return a + (b - a) * t end
+function map(t, a, b, c, d) return ((t - a) / (b - a)) * (d - c) + c end
 vec={}
 function vec.New(x,y,z)return{x=x,y=y,z=z}end
 function vec.Add(A,B)return{x=A.x+B.x,y=A.y+B.y,z=A.z+B.z}end
@@ -13,6 +18,20 @@ function vec.Euler(rx,ry,rz)local cx,cy,cz=math.cos(rx),math.cos(ry),math.cos(rz
 function vec.Local(A,ijk)return vec.New(vec.Dot(A, ijk.x),vec.Dot(A, ijk.y),vec.Dot(A, ijk.z))end
 function vec.Global(A,ijk)return vec.Add(vec.Scale(ijk.x, A.x),vec.Add(vec.Scale(ijk.y, A.y),vec.Scale(ijk.z, A.z)))end
 function vec.Raycast(A,ijk,distance)return vec.Global(vec.SetLen(A,distance),ijk)end
+function vec.Heading(A)return {x=math.atan(A.x,A.z),y=math.atan(A.y,A.z)}end
+
+YAW_GAIN = 1
+PITCH_GAIN = 2
+
+MAX_ANGLE = 20 /360
+ALTITUDE_GAIN = 0.001
+
+ROLLING = -0.05
+MAX_ROLL = 0.05
+
+cruise_altitude = 800
+
+LOITER_DISTANCE = 300
 
 function onTick()
 	self={}
@@ -22,5 +41,35 @@ function onTick()
 	self.rx=input.getNumber(4)
 	self.ry=input.getNumber(5)
 	self.rz=input.getNumber(6)
+	self.pitch=input.getNumber(15)
+	self.roll=input.getNumber(16)
     self.IJK=vec.Euler(self.rx,self.ry,self.rz)
+
+	-- Code goes here
+	
+	if input.getBool(1) then
+		launched = true
+	end
+	
+	target = vec.New(input.getNumber(7), input.getNumber(8), input.getNumber(9))
+
+    delta = vec.Sub(target, self)
+
+    pitch_setpoint = clamp(cruise_altitude - self.y, -MAX_ANGLE, MAX_ANGLE)
+	
+	towards = vec.Heading(vec.Local(vec.New(delta.x, (math.tan(pitch_setpoint)) * vec.Len({x=delta.x, y=0, z=delta.z}), delta.z),self.IJK))
+	
+
+    yaw_control = towards.x * YAW_GAIN
+    pitch_control = towards.y * PITCH_GAIN
+
+    roll_setpoint = clamp(towards.x * ROLLING, -MAX_ROLL, MAX_ROLL)
+
+	roll_control = (self.roll - roll_setpoint) * 10
+	
+	output.setNumber(1, towards.x * YAW_GAIN)
+	output.setNumber(2, towards.y * PITCH_GAIN)
+	output.setNumber(3, roll_control)
+	output.setNumber(4, launched and -1 or 0)
+
 end
