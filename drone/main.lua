@@ -20,10 +20,10 @@ function vec.Global(A,ijk)return vec.Add(vec.Scale(ijk.x, A.x),vec.Add(vec.Scale
 function vec.Raycast(A,ijk,distance)return vec.Global(vec.SetLen(A,distance),ijk)end
 function vec.Heading(A)return {x=math.atan(A.x,A.z),y=math.atan(A.y,A.z)}end
 
-YAW_GAIN = 1
-PITCH_GAIN = 2
+YAW_GAIN = 2
+PITCH_GAIN = 3
 
-MAX_ANGLE = 20 /360
+MAX_ANGLE = 30 /360
 ALTITUDE_GAIN = 0.001
 
 ROLLING = -0.05
@@ -31,7 +31,9 @@ MAX_ROLL = 0.05
 
 cruise_altitude = 800
 
-LOITER_DISTANCE = 300
+state = 0
+dive_elapsed = 0
+fire = false
 
 function onTick()
 	self={}
@@ -45,31 +47,80 @@ function onTick()
 	self.roll=input.getNumber(16)
     self.IJK=vec.Euler(self.rx,self.ry,self.rz)
 
+
+
 	-- Code goes here
+	
+	if not launched and input.getBool(1) then
+		launch_pulse = true
+	else
+		launch_pulse = false
+	end
 	
 	if input.getBool(1) then
 		launched = true
 	end
+
+	if launched then
+		starting = self
+	end
+
+	if launch_pulse then
+		target = vec.New(input.getNumber(7), input.getNumber(8), input.getNumber(9))
+	end
 	
-	target = vec.New(input.getNumber(7), input.getNumber(8), input.getNumber(9))
+	if launched then
+        delta = vec.Sub(target, self)
+	    gps_distance = vec.Len({x=delta.x, y=0, z=delta.z})
 
-    delta = vec.Sub(target, self)
 
-    pitch_setpoint = clamp(cruise_altitude - self.y, -MAX_ANGLE, MAX_ANGLE)
-	
-	towards = vec.Heading(vec.Local(vec.New(delta.x, (math.tan(pitch_setpoint)) * vec.Len({x=delta.x, y=0, z=delta.z}), delta.z),self.IJK))
-	
+        pitch_setpoint = clamp(cruise_altitude - self.y, -MAX_ANGLE, MAX_ANGLE)
+    
+	    if state == 0 then
+	    	towards = vec.Heading(vec.Local(vec.New(delta.x, (math.tan(pitch_setpoint)) * gps_distance, delta.z),self.IJK))
 
-    yaw_control = towards.x * YAW_GAIN
-    pitch_control = towards.y * PITCH_GAIN
+        	yaw_control = towards.x
+        	pitch_control = towards.y
 
-    roll_setpoint = clamp(towards.x * ROLLING, -MAX_ROLL, MAX_ROLL)
+	    	if launched and gps_distance < 1200 then
+	    		state = 1
+	    	end
+	    end
 
-	roll_control = (self.roll - roll_setpoint) * 10
-	
-	output.setNumber(1, towards.x * YAW_GAIN)
-	output.setNumber(2, towards.y * PITCH_GAIN)
-	output.setNumber(3, roll_control)
-	output.setNumber(4, launched and -1 or 0)
+	    if state == 1 then
+	    	towards = vec.Heading(vec.Local(delta, self.IJK))
+        
+	    	yaw_control = towards.x
+	    	pitch_control = towards.y
+        
+	    	dive_elapsed = dive_elapsed + 1
+        
+	    	if dive_elapsed > 120 then
+	    		fire = true
+	    	end
+        
+	    	if dive_elapsed > 240 then
+	    		state = 3
+	    	end
+	    end
+    
+	    if state == 3 then
+	    	home = vec.Sub(starting, self)
+	    	towards = vec.Heading(home)
+        
+	    	yaw_control = towards.x
+	    	pitch_control = towards.y
+	    end
 
+        roll_setpoint = clamp(towards.x * ROLLING, -MAX_ROLL, MAX_ROLL)
+
+	    roll_control = (self.roll - roll_setpoint) * 10
+    
+	    output.setNumber(1, towards.x * YAW_GAIN)
+	    output.setNumber(2, towards.y * PITCH_GAIN)
+	    output.setNumber(3, roll_control)
+	    output.setNumber(4, launched and -1 or 0)
+    
+	    output.setBool(1, fire)
+    end
 end
