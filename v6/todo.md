@@ -8,3 +8,5 @@
 - ⬛ Smarter terrain avoidance (preferably live mapping etc)
 - ⬛ Some sort of guidance law implemented (PN, APN)
 - ⬛ Output shaping and auto-trim
+
+- ⬛ Cruise mode: cruise, arc, direct
