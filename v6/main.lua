@@ -36,9 +36,16 @@ function Sphere(A)return Vec(math.atan(A.x,A.y),math.asin(A.z/Len(A)))end
 -- restrict pitch during turns: 
 -- (when next aimpoint is more than 90 degrees away, flatten delta vector to stay level)
 
+-- terrain follow margin: the minimum distance to maintain from terrain (in meters)
+
 -- TERMINAL
 -- terminal distance: distance from target to start terminal phase
 -- terminal pattern: 0 = direct  1 = top attack  2 = evasive
+-- evasion amount: max angle to deviate from target (in degrees)
+
+-- RADAR
+-- input type: off = missile  on = radar
+-- allow acquire: 0 = radar off  1 = radar on in terminal  2 = radar on at all times
 
 
 
