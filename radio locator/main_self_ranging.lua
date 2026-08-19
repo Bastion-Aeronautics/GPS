@@ -13,7 +13,12 @@ function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
 function Sphere(A)return Vec(math.atan(A.x,A.y),math.asin(A.z/Len(A)))end
 
-strength = 20100 -- property.getNumber("transmit rx strength") + property.getNumber("scan rx strength")
+arm_length = property.getNumber("arm length")
+
+radio_c = 0
+radio_x = 0
+radio_y = 0
+radio_z = 0
 
 function onTick()
 	self={x=input.getNumber(1),y=input.getNumber(2),z=input.getNumber(3),rx=input.getNumber(4),ry=input.getNumber(5),rz=input.getNumber(6)}
@@ -34,7 +39,7 @@ function onTick()
     unit_delta = Vec(range_x - range_c, range_y - range_c, range_z - range_c)
     delta = SetLen(unit_delta, range_c*strength)
 
-    target = Add(self, Global(delta, self.IJK))
+    target = Sub(self, Global(delta, self.IJK))
 
     output.setNumber(1, target.x)
     output.setNumber(2, target.y)

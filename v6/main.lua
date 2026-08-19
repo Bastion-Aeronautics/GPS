@@ -15,38 +15,59 @@ function Sphere(A)return Vec(math.atan(A.x,A.y),math.asin(A.z/Len(A)))end
 
 -- PROPERTIES
 
+
 -- GENERAL
--- eject direction: 0 = off  1 = up  2 = down  3 = left  4 = right
--- eject duration: time in ticks
 
--- altitude mode: off = absolute  on = relative (relative sets y=0 to target altitude)
+-- Guidance Delay
+-- Boost Delay
 
--- gain: general gain for all axis
+-- Mode: 0 = target  1 = waypoint  2 = datalink
+
+-- Eject Direction: 0 = off  1 = up  2 = down  3 = left  4 = right
+-- Eject Duration: time in ticks
+
+-- Altitude Mode: off = absolute  on = relative (relative sets y=0 to target altitude)
+
 
 -- CRUISE
--- cruise pattern: 0 = direct  1 = level  2 = arc  3 = terrain follow
+-- Cruise Pattern: 0 = direct  1 = level  2 = arc  3 = terrain follow
 
--- altitude: the target altitude for cruising
+-- Altitude: the target altitude for cruising
 -- (acts as altitude floor for direct and terrain following mode)
 
--- max angle: max pitch angle allowed to adjust altitude (in degrees)
+-- Max Angle: max pitch angle allowed to adjust altitude (in degrees)
 
--- altitude gain: pitch per meter of deviation (in degrees)
+-- Altitude Gain: pitch per meter of deviation (in degrees)
 
--- restrict pitch during turns: 
+-- Restrict Pitch During Turns: 
 -- (when next aimpoint is more than 90 degrees away, flatten delta vector to stay level)
 
--- terrain follow margin: the minimum distance to maintain from terrain (in meters)
+-- Terrain Follow Margin: the minimum distance to maintain from terrain (in meters)
+
 
 -- TERMINAL
--- terminal distance: distance from target to start terminal phase
--- terminal pattern: 0 = direct  1 = top attack  2 = evasive
--- evasion amount: max angle to deviate from target (in degrees)
+-- Terminal Distance: distance from target to start terminal phase
+-- Terminal Pattern: 0 = direct  1 = top attack  2 = evasive
+-- Evasion Amount: max angle to deviate from target (in degrees)
+
 
 -- RADAR
--- input type: off = missile  on = radar
--- allow acquire: 0 = radar off  1 = radar on in terminal  2 = radar on at all times
+-- Input Type: off = missile  on = radar
+-- Allow Acquire: 0 = radar off  1 = radar on in terminal  2 = radar on at all times
 
+
+-- CONTROL
+-- Pitch Gain
+-- Yaw Gain
+-- Roll Gain
+
+-- Pitch Trim
+-- Yaw Trim
+-- Roll Trim
+
+-- Level Angle (deg): the angle to maintain altitude
+
+-- Margin: distance to start turning before waypoints
 
 
 function onTick()
