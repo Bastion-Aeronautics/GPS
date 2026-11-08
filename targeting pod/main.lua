@@ -34,7 +34,13 @@ function Point(A,ijk,lijk)return Project(Local(Global(A,ijk),lijk))end
 function Horizon(v,pijk,lijk)return Project(Local(Global(v,pijk),lijk))end
 
 function onTick()
+
+
+
+    output.setNumber(1, slewX)
+    output.setNumber(2, slewY)
 end
 
 function onDraw()
+
 end
