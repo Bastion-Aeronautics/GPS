@@ -188,20 +188,67 @@ States:
     
 ]]--
 
-guidance = {x=0,y=0}
+
 
 launched = false
 state = 0
+
+-- sleeping  boosting  gliding  ejection turning  heading to waypoint  heading to target  popping up  avoiding terrain  diving  evading  target locked
+debug_state = 0
 elapsed = 0
 
-eject_duration          =   property.getNumber("Ejection Turn Duration")
-eject_direction         =   property.getNumber("Ejection Turn Direction")
+target = Vec(0,0,0)
 
 guide_delay             =   property.getNumber("Guidance Delay")
 boost_delay             =   property.getNumber("Booster Delay")
 
+-- Target, Waypoint, Datalink
+mode                    =   property.getNumber("Mode")
+
+eject_direction         =   property.getNumber("Eject Direction")
+eject_duration          =   property.getNumber("Eject Duration")
+
+-- Absolute, Relative to target
+altitude_mode           =   property.getNumber("Altitude Mode")
+
+roll_control            =   property.getBool("Active Roll Control")
+
+-- Direct, Level, Arc, Terrain
+cruise_pattern          =   property.getNumber("Cruise Pattern")
+cruise_altitude         =   property.getNumber("Altitude")
+max_angle               =   property.getNumber("Max Angle")
+altitude_gain           =   property.getNumber("Altitude Gain")
+
+flatten_large_turn      =   property.getBool("Restrict Pitch During Turns")
+
+terrain_margin          =   property.getNumber("Terrain Follow Margin")
+
+terminal_distance       =   property.getNumber("Terminal Distance")
+terminal_pattern        =   property.getNumber("Terminal Pattern")
+evasion_angle           =   property.getNumber("Evasion Angle") -- in degrees
+
+popup_height            =   property.getNumber("Pop-up Height")
+dive_angle              =   property.getNumber("Dive Angle")
+
+radar_type              =   property.getNumber("Input Type")
+allow_lock              =   property.getNumber("Allow Acquire")
+
+
+x_gain                  =   property.getNumber("Pitch Gain")
+x_trim                  =   property.getNumber("Pitch Trim")
+y_gain                  =   property.getNumber("Yaw Gain")
+y_trim                  =   property.getNumber("Yaw Trim")
+r_gain                  =   property.getNumber("Roll Gain")
+r_trim                  =   property.getNumber("Roll Trim")
+
+aoa                     =   property.getNumber("Level Angle")
+margin                  =   property.getNumber("Margin")
+
 function onTick()
-	self={x=input.getNumber(1),y=input.getNumber(2),z=input.getNumber(3),rx=input.getNumber(4),ry=input.getNumber(5),rz=input.getNumber(6)}
+    -- reset guidance so theres no accidentally left over steering outputs from the last cycle
+    guidance = Vec(0,0,0)
+
+	self={x=input.getNumber(1),y=input.getNumber(2),z=input.getNumber(3),rx=input.getNumber(4),ry=input.getNumber(5),rz=input.getNumber(6),pitch=input.getNumber(15),roll=input.getNumber(16)}
     self.IJK=IJK(self.rx,self.ry,self.rz)
 
     -- Always TRUE once missile is launched
@@ -210,23 +257,69 @@ function onTick()
     -- Increment elapsed time if launched
     if launched == true then elapsed = elapsed + 1 end
 
+    -- global delta vector
+    g_delta = Sub(target, self)
 
+    -- main state machine
+    if state == 0 then
+        -- pre launch:
 
-    if launched == false then
-        -- pre launch prep (waypoint setting, overrides etc)
-    else
-        -- main state engine
-        if state == 0 then
-            -- turn on booster once the delay is up
-            if elapsed > boost_delay then output.setBool(1, true) end
+        if launched == true then state = 1 end
 
-            if elapsed <= eject_duration then
-                -- ejection turn
+    elseif state == 1 then
+        -- post launch: perform ejection turn and waiting
+
+        -- turn on booster once the delay is up
+        if elapsed > boost_delay then output.setBool(1, true) end
+
+        -- ejection turn
+        -- 0 = off  1 = up  2 = down  3 = left  4 = right
+        if eject_direction ~= 0 then
+            if elapsed <= eject_duration then 
+                if      eject_direction == 1 then guidance.y = 1
+                elseif  eject_direction == 2 then guidance.y = -1
+                elseif  eject_direction == 3 then guidance.x = -1
+                elseif  eject_direction == 4 then guidance.x = 1
+                end
             end
+        end
 
-            -- exit phase once either guidance delay or ejection delay finishes (whichever one is last)
-            if elapsed > Max(guide_delay, eject_duration) then state = 1 end
+        -- exit phase once either guidance delay or ejection delay finishes (whichever one is last)
+        if elapsed > Max(guide_delay, eject_duration) then state = 2 end
+
+        -- debug state setting
+        if elapsed <= eject_duration then debug_state = 3 end -- ejecting
+        if elapsed <= guide_delay and elapsed > eject_duration then debug_state = 2 end -- waiting for guidance
+        if elapsed > boost_delay and elapsed > eject_duration then debug_state = 1 end -- boosting and done ejecting
+
+    elseif state == 2 then
+        -- cruise: go to the target yknow
+
+        if cruise_pattern == 0 then
+            -- direct
+            guidance = Sphere(Local(g_delta, self.IJK))
+
+            debug_state = 5
+        elseif cruise_pattern == 1 then
+            
 
         end
+
+        -- go to terminal when within distance
+        if Len(g_delta) < terminal_distance then state = 3 end
+
     end
+
+    if launched and roll_control then
+        -- roll control: keep the missile level with the horizon
+        guidance.z = -self.roll * r_gain + r_trim
+    else
+        guidance.z = 0
+    end
+
+    output.setNumber(1, guidance.x)
+    output.setNumber(2, guidance.y)
+    output.setNumber(3, guidance.z)
+    output.setNumber(4, debug_state)
+    output.setNumber(8, Len(g_delta))
 end
