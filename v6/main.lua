@@ -1,17 +1,66 @@
+Pi=math.pi
+Tau=math.pi*2
+Sin=math.sin
+Cos=math.cos
+Tan=math.tan
+Acos=math.acos
+Asin=math.asin
+Atan=math.atan
+Sqrt=math.sqrt
+
+Max = math.max
+Min = math.min
+Floor = math.floor
+Ceil = math.ceil
+Abs = math.abs
+
+function Clamp(val, min, max) return Min(Max(val, min), max) end
+function Lerp(a, b, t) return a + (b - a) * t end
+function Map(t, a, b, c, d) return ((t - a) / (b - a)) * (d - c) + c end -- map a-b to c-d according to t
+function Round(a) return Floor(a+0.5) end
+
+--- @class vector
+--- @function Creates a vector with x, y, and z components
+--- @param x number The x-coordinate of the vector.
+--- @param y number The y-coordinate of the vector.
+--- @param z number The z-coordinate of the vector.
+--- @return vector
 function Vec(x,y,z)return{x=x,y=y,z=z}end
+
+-- Self explanatory
 function Add(A,B)return{x=A.x+B.x,y=A.y+B.y,z=A.z+B.z}end
 function Sub(A,B)return{x=A.x-B.x,y=A.y-B.y,z=A.z-B.z}end
 function Scale(A,n)return{x=A.x*n,y=A.y*n,z=A.z*n}end
 function Dot(A,B)return A.x*B.x+A.y*B.y+A.z*B.z end
-function Len(A)return math.sqrt(A.x*A.x+A.y*A.y+A.z*A.z)end
+function Cross(A,B)return{x=A.y*B.z-A.z*B.y,y=A.z*B.x-A.x*B.z,z=A.x*B.y-A.y*B.x}end
+
+-- Does various things to the length of vectors
+function Len(A)return Sqrt(A.x*A.x+A.y*A.y+A.z*A.z)end
 function SetLen(A,n)return Scale(Norm(A),n)end
 function Norm(A)return Len(A)~=0 and Scale(A,1/Len(A))or{x=0,y=0,z=0}end
-function Cross(A,B)return{x=A.y*B.z-A.z*B.y,y=A.z*B.x-A.x*B.z,z=A.x*B.y-A.y*B.x}end
+
+
+--- @function Linearly interpolates between two vectors A and B by t
+--- @param A vector The starting vector.
+--- @param B vector The ending vector.
+--- @param t number The interpolation factor (0 to 1).
+--- @return vector
 function Lerp(A,B,t)return Add(A,Scale(Sub(B,A),t))end
-function Euler(rx,ry,rz)local cx,cy,cz=math.cos(rx),math.cos(ry),math.cos(rz)local sx,sy,sz=math.sin(rx),math.sin(ry),math.sin(rz)local local_x={x=cy*cz,y=cy*sz,z=-sy}local local_y={x=-cx*sz+sx*sy*cz,y=cx*cz+sx*sy*sz,z=sx*cy}local local_z=Cross(local_x,local_y)return{x=local_x,y=local_y,z=local_z}end
+
+--- @function Converts physics sensor rotation outputs to a rotation matrix for use in other functions
+--- @param rx number The x rotation in radians.
+--- @param ry number The y rotation in radians.
+--- @param rz number The z rotation in radians.
+--- @return vector
+function IJK(rx,ry,rz)local cx,cy,cz=Cos(rx),Cos(ry),Cos(rz)local sx,sy,sz=Sin(rx),Sin(ry),Sin(rz) return Vec(Vec(cy*cz,cy*sz,-sy),Vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy),Vec(cx*sy*cz+sx*sz,cx*sy*sz-sx*cz,cx*cy))end
+
+-- Projects vectors from global to local space and vice versa
 function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
-function Sphere(A)return Vec(math.atan(A.x,A.y),math.asin(A.z/Len(A)))end
+
+-- Projects vectors from cartesian to spherical coordinates and vice versa
+function Sphere(A)return Vec(Atan(A.x,A.y),Asin(A.z/Len(A)),Len(A))end
+function Cartesian(A)return Vec(A.z*Cos(A.y)*Sin(A.x),A.z*Cos(A.y)*Cos(A.x),A.z*Sin(A.y))end
 
 -- PROPERTIES
 
@@ -54,6 +103,7 @@ function Sphere(A)return Vec(math.atan(A.x,A.y),math.asin(A.z/Len(A)))end
 -- RADAR
 -- Input Type: off = missile  on = radar
 -- Allow Acquire: 0 = radar off  1 = radar on in terminal  2 = radar on at all times
+-- Prioritise: 0 = default  1 = closeset to GPS  2 = closest to missile  3 = furthest from missile (anti chaff)  4 = smart (anti chaff anti distractions)
 
 
 -- CONTROL
@@ -70,10 +120,113 @@ function Sphere(A)return Vec(math.atan(A.x,A.y),math.asin(A.z/Len(A)))end
 -- Margin: distance to start turning before waypoints
 
 
+--[[
+
+States:
+
+0: Waiting for launch
+    0:
+        Go to last valid target transmitted through hardpoint
+
+    1:
+        Bool 1 adds new waypoint, bool 2 resets all waypoints
+        Only register valid waypoints (for 60hz waypoint adding to work without tick finagling)
+
+    2:
+        Input 32 must be a valid datalink certificate, allows waypoint adding and resetting in flight
+
+1: Launching (detachment turn + waiting for guidance)
+    Ends when either guidance delay or ejection turn duration elapses (whichever one is later)
+
+2: Cruising
+    0:
+        Go directly for the target with no regard for anything else
+
+    1:
+        Cruise at the set altitude until the terminal distance from target is reached
+
+    2:
+        Arcs over the target (idk how to do that yet ill ask mat)
+        Arc peak is set to cruising altitude
+        
+    3:
+        Terrain following, uses front laser to check highest point in terrain and set aimpoint to [margin] meters above that point
+        Minimum altitude is set to cruising altitude
+
+    Cruising ends either if:
+        The terminal distance is reached
+        Radar mode is 2 and a target is seen
+
+3: Terminal
+    0:
+        Direct, keep going directly at the target
+    
+    1:
+        Top attack, climbs at 45 degrees until [margin] is reached, then dive directly at the target
+        
+    2:
+        Evasive, offsets aimpoint left and right on a sine wave multiplied by remaining distance to target
+        (so the deviation converges to 0 as the target is reached)
+
+    Terminal phase ends when the radar sees a target, or never is radar is not enabled
+
+4: Radar
+    0:
+        Go for the first target in radar, the only available mode if using missile radar mode
+
+    1:
+        Go to the target that is closest to GPS target, by using the secondary LUA block
+
+    2:
+        Go to the target that is the closest to the missile
+
+    3:
+        Go to the target that is last in the target list
+
+    4:
+        Goes to the last target on the list that is also within a certain distance to the GPS target
+    
+]]--
+
+guidance = {x=0,y=0}
+
+launched = false
+state = 0
+elapsed = 0
+
+eject_duration          =   property.getNumber("Ejection Turn Duration")
+eject_direction         =   property.getNumber("Ejection Turn Direction")
+
+guide_delay             =   property.getNumber("Guidance Delay")
+boost_delay             =   property.getNumber("Booster Delay")
+
 function onTick()
 	self={x=input.getNumber(1),y=input.getNumber(2),z=input.getNumber(3),rx=input.getNumber(4),ry=input.getNumber(5),rz=input.getNumber(6)}
-    self.IJK=Euler(self.rx,self.ry,self.rz)
+    self.IJK=IJK(self.rx,self.ry,self.rz)
+
+    -- Always TRUE once missile is launched
+    if input.getBool(1) then launched = true end
+
+    -- Increment elapsed time if launched
+    if launched == true then elapsed = elapsed + 1 end
 
 
 
+    if launched == false then
+        -- pre launch prep (waypoint setting, overrides etc)
+    else
+        -- main state engine
+        if state == 0 then
+            -- turn on booster once the delay is up
+            if elapsed > boost_delay then output.setBool(1, true) end
+
+            if elapsed <= eject_duration then
+                -- ejection turn
+            end
+
+            -- exit phase once either guidance delay or ejection delay finishes (whichever one is last)
+            if elapsed > Max(guide_delay, eject_duration) then state = 1 end
+
+        end
+    end
 end

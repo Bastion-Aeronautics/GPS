@@ -1,34 +1,52 @@
-pi=math.pi
-tau=math.pi*2
-sin=math.sin
-cos=math.cos
-tan=math.tan
-acos=math.acos
-asin=math.asin
-atan=math.atan
-sqrt=math.sqrt
+Pi=math.pi
+Tau=math.pi*2
+Sin=math.sin
+Cos=math.cos
+Tan=math.tan
+Acos=math.acos
+Asin=math.asin
+Atan=math.atan
+Sqrt=math.sqrt
 
-function clamp(val, min, max) return math.min(math.max(val, min), max) end
-function lerp(a, b, t) return a + (b - a) * t end
-function map(t, a, b, c, d) return ((t - a) / (b - a)) * (d - c) + c end -- map a-b to c-d according to t
-function round(a) return math.floor(a+0.5) end
-
+--- @class vector
+--- @function Creates a vector with x, y, and z components
+--- @param x number The x-coordinate of the vector.
+--- @param y number The y-coordinate of the vector.
+--- @param z number The z-coordinate of the vector.
+--- @return vector
 function Vec(x,y,z)return{x=x,y=y,z=z}end
-function Add(A,B)return Vec(A.x+B.x,A.y+B.y,A.z+B.z)end
-function Sub(A,B)return Vec(A.x-B.x,A.y-B.y,A.z-B.z)end
-function Scale(A,n)return Vec(A.x*n,A.y*n,A.z*n)end
+
+-- Self explanatory
+function Add(A,B)return{x=A.x+B.x,y=A.y+B.y,z=A.z+B.z}end
+function Sub(A,B)return{x=A.x-B.x,y=A.y-B.y,z=A.z-B.z}end
+function Scale(A,n)return{x=A.x*n,y=A.y*n,z=A.z*n}end
 function Dot(A,B)return A.x*B.x+A.y*B.y+A.z*B.z end
-function Len(A)return sqrt(A.x*A.x+A.y*A.y+A.z*A.z)end
+function Cross(A,B)return{x=A.y*B.z-A.z*B.y,y=A.z*B.x-A.x*B.z,z=A.x*B.y-A.y*B.x}end
+
+-- Does various things to the length of vectors
+function Len(A)return Sqrt(A.x*A.x+A.y*A.y+A.z*A.z)end
 function SetLen(A,n)return Scale(Norm(A),n)end
-function Norm(A)return Len(A)~=0 and Scale(A,1/Len(A))or Vec(0,0,0)end
-function Cross(A,B)return Vec(A.y*B.z-A.z*B.y,A.z*B.x-A.x*B.z,A.x*B.y-A.y*B.x)end
+function Norm(A)return Len(A)~=0 and Scale(A,1/Len(A))or{x=0,y=0,z=0}end
+
+
+--- @function Linearly interpolates between two vectors A and B by t
+--- @param A vector The starting vector.
+--- @param B vector The ending vector.
+--- @param t number The interpolation factor (0 to 1).
+--- @return vector
 function Lerp(A,B,t)return Add(A,Scale(Sub(B,A),t))end
-function IJK(rx,ry,rz)local cx,cy,cz=cos(rx),cos(ry),cos(rz)local sx,sy,sz=sin(rx),sin(ry),sin(rz) return Vec(Vec(cy*cz,cy*sz,-sy),Vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy),Vec(cx*sy*cz+sx*sz,cx*sy*sz-sx*cz,cx*cy))end
-function LIJK(x,y,ijk)local ca,ce,cr=cos(x),cos(y),1 local sa,se,sr=sin(x),sin(y),0 return Vec(Global(Vec(cr*ca+sr*se*sa,-sr*ce,sr*se*ca-cr*sa),ijk),Global(Vec(sr*ca-cr*se*sa,cr*ce,-cr*se*ca-sr*sa),ijk),Global(Vec(sa*ce,se,ca*ce),ijk))end
-function PIJK(ijk)local z=Norm(Vec(ijk.z.x,0,ijk.z.z))local x=Vec(z.z,0,-z.x)local y=Cross(x,z)return Vec(x,y,z)end
+
+--- @function Converts physics sensor rotation outputs to a rotation matrix for use in other functions
+--- @param rx number The x rotation in radians.
+--- @param ry number The y rotation in radians.
+--- @param rz number The z rotation in radians.
+--- @return vector
+function IJK(rx,ry,rz)local cx,cy,cz=Cos(rx),Cos(ry),Cos(rz)local sx,sy,sz=Sin(rx),Sin(ry),Sin(rz) return Vec(Vec(cy*cz,cy*sz,-sy),Vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy),Vec(cx*sy*cz+sx*sz,cx*sy*sz-sx*cz,cx*cy))end
+
+-- Projects vectors from global to local space and vice versa
 function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
-function Sphere(A)return Vec(atan(A.x,A.y),asin(A.z/Len(A)))end
-function Project(A)local w,h=256,192 return w/2+A.x/A.z*1.343*w/2,h/2-A.y/A.z*1.343*w/2 end
-function Point(A,ijk,lijk)return Project(Local(Global(A,ijk),lijk))end
-function Horizon(v,pijk,lijk)return Project(Local(Global(v,pijk),lijk))end
+
+-- Projects vectors from cartesian to spherical coordinates and vice versa
+function Sphere(A)return Vec(Atan(A.x,A.y),Asin(A.z/Len(A)),Len(A))end
+function Cartesian(A)return Vec(A.z*Cos(A.y)*Sin(A.x),A.z*Cos(A.y)*Cos(A.x),A.z*Sin(A.y))end
