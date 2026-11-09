@@ -20,6 +20,10 @@ function Map(t, a, b, c, d) return ((t - a) / (b - a)) * (d - c) + c end -- map 
 function Round(a) return Floor(a+0.5) end
 
 --- @class vector
+--- @field x number The x-coordinate of the vector.
+--- @field y number The y-coordinate of the vector.
+--- @field z number The z-coordinate of the vector.
+
 --- @function Creates a vector with x, y, and z components
 --- @param x number The x-coordinate of the vector.
 --- @param y number The y-coordinate of the vector.
@@ -198,6 +202,8 @@ debug_state = 0
 elapsed = 0
 
 target = Vec(0,0,0)
+waypoints = {}
+aimpoint = Vec(0,0,0)
 
 guide_delay             =   property.getNumber("Guidance Delay")
 boost_delay             =   property.getNumber("Booster Delay")
@@ -232,6 +238,8 @@ dive_angle              =   property.getNumber("Dive Angle")
 
 radar_type              =   property.getNumber("Input Type")
 allow_lock              =   property.getNumber("Allow Acquire")
+radar_priority          =   property.getNumber("Prioritise")
+tolerance               =   property.getNumber("Tolerance")
 
 
 x_gain                  =   property.getNumber("Pitch Gain")
@@ -263,6 +271,16 @@ function onTick()
     -- main state machine
     if state == 0 then
         -- pre launch:
+        if mode == 0 then
+            if input.getNumber(7) ~= 0 then target = Vec(input.getNumber(7), input.getNumber(8), input.getNumber(9)) end
+        elseif mode == 1 then
+            if input.getBool(2) then
+                if input.getNumber(7) ~= 0 then waypoints.insert(Vec(input.getNumber(7), input.getNumber(8), input.getNumber(9))) end
+                target = waypoints[1]
+            elseif input.getBool(3) then
+                waypoints = {}
+            end
+        end
 
         if launched == true then state = 1 end
 
@@ -297,29 +315,39 @@ function onTick()
 
         if cruise_pattern == 0 then
             -- direct
-            guidance = Sphere(Local(g_delta, self.IJK))
+            aimpoint = g_delta
 
             debug_state = 5
+
         elseif cruise_pattern == 1 then
-            
+            -- level flight
 
         end
 
+        if flatten_large_turn then
+            -- if the next aimpoint is more than 90 degrees away, flatten the delta vector to stay level
+            if Dot(Norm(aimpoint), Norm(self.IJK.x)) < 0 then aimpoint.y = 0 end
+        end
+        guidance = Sphere(Local(aimpoint, self.IJK))
+
         -- go to terminal when within distance
         if Len(g_delta) < terminal_distance then state = 3 end
+
+    elseif state == 3 then
+        -- terminal
 
     end
 
     if launched and roll_control then
         -- roll control: keep the missile level with the horizon
-        guidance.z = -self.roll * r_gain + r_trim
+        guidance.z = -self.roll
     else
         guidance.z = 0
     end
 
-    output.setNumber(1, guidance.x)
-    output.setNumber(2, guidance.y)
-    output.setNumber(3, guidance.z)
-    output.setNumber(4, debug_state)
-    output.setNumber(8, Len(g_delta))
+    output.setNumber(1, Clamp((guidance.x * x_gain) + x_trim, -1, 1))   -- yaw
+    output.setNumber(2, Clamp((guidance.y * y_gain) + y_trim, -1, 1))   -- pitch
+    output.setNumber(3, Clamp((guidance.z * r_gain) + r_trim, -1, 1))   -- roll
+    output.setNumber(4, debug_state)                                    -- the funny flavour text
+    output.setNumber(8, Round(Len(g_delta)))                            -- distance to target
 end
