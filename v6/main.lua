@@ -205,6 +205,8 @@ target = Vec(0,0,0)
 waypoints = {}
 aimpoint = Vec(0,0,0)
 
+radar_enabled = false -- enable?
+
 GUIDE_DELAY             =   property.getNumber("Guidance Delay")
 BOOST_DELAY             =   property.getNumber("Booster Delay")
 AUXILIARY_DELAY         =   property.getNumber("Auxiliary Delay")
@@ -277,6 +279,10 @@ function onTick()
 
     if elapsed > AUXILIARY_DELAY then
         output.setBool(3, true) -- auxiliary output for things such as staging and etc
+    end
+
+    if ALLOW_LOCK ~= 0 then
+        output.setBool(2, radar_enabled) -- update radar state
     end
 
     -- main state machine
@@ -352,10 +358,8 @@ function onTick()
 
         end
 
-        if FLATTEN_LARGE_TURN then
-            -- if the next aimpoint is more than 90 degrees away, flatten the delta vector to stay level
-            if Dot(Norm(aimpoint), Norm(self.IJK.x)) < 0 then aimpoint.y = 0 end
-        end
+        -- if the next aimpoint is more than 90 degrees away, flatten the delta vector to stay level
+        if FLATTEN_LARGE_TURN then if Dot(Norm(aimpoint), Norm(self.IJK.x)) < 0 then aimpoint.y = 0 end end
 
         -- go to terminal when within distance
         if MODE == 0 then -- target will always be the actual target
@@ -367,6 +371,8 @@ function onTick()
                 target = waypoints[1]
             end
         end
+
+        if ALLOW_LOCK == 1 then radar_enabled = true end
 
         guidance = Sphere(Local(aimpoint, self.IJK))
 
