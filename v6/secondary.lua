@@ -1,5 +1,6 @@
 Pi=math.pi
 Tau=math.pi*2
+Inf=math.huge
 Sin=math.sin
 Cos=math.cos
 Tan=math.tan
@@ -7,6 +8,7 @@ Acos=math.acos
 Asin=math.asin
 Atan=math.atan
 Sqrt=math.sqrt
+
 
 --- @class vector
 --- @function Creates a vector with x, y, and z components
@@ -51,68 +53,78 @@ function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(i
 function Sphere(A)return Vec(Atan(A.x,A.y),Asin(A.z/Len(A)),Len(A))end
 function Cartesian(A)return Vec(A.z*Cos(A.y)*Sin(A.x),A.z*Cos(A.y)*Cos(A.x),A.z*Sin(A.y))end
 
--- PROPERTIES
+RADAR_TYPE              =   property.getNumber("Input Type")
 
-
--- GENERAL
-
--- Guidance Delay
--- Boost Delay
-
--- Mode: 0 = target  1 = waypoint  2 = datalink
-
--- Eject Direction: 0 = off  1 = up  2 = down  3 = left  4 = right
--- Eject Duration: time in ticks
-
--- Altitude Mode: off = absolute  on = relative (relative sets y=0 to target altitude)
-
-
--- CRUISE
--- Cruise Pattern: 0 = direct  1 = level  2 = arc  3 = terrain follow
-
--- Altitude: the target altitude for cruising
--- (acts as altitude floor for direct and terrain following mode)
-
--- Max Angle: max pitch angle allowed to adjust altitude (in degrees)
-
--- Altitude Gain: pitch per meter of deviation (in degrees)
-
--- Restrict Pitch During Turns: 
--- (when next aimpoint is more than 90 degrees away, flatten delta vector to stay level)
-
--- Terrain Follow Margin: the minimum distance to maintain from terrain (in meters)
-
-
--- TERMINAL
--- Terminal Distance: distance from target to start terminal phase
--- Terminal Pattern: 0 = direct  1 = top attack  2 = evasive
--- Evasion Amount: max angle to deviate from target (in degrees)
-
-
--- RADAR
--- Input Type: off = missile  on = radar
--- Allow Acquire: 0 = radar off  1 = radar on in terminal  2 = radar on at all times
--- Prioritise: 0 = default  1 = closeset to GPS  2 = closest to missile  3 = furthest from missile (anti chaff)
-
-
--- CONTROL
--- Pitch Gain
--- Yaw Gain
--- Roll Gain
-
--- Pitch Trim
--- Yaw Trim
--- Roll Trim
-
--- Level Angle (deg): the angle to maintain altitude
-
--- Margin: distance to start turning before waypoints
-
+RADAR_PRIORITY          =   property.getNumber("Prioritise")
+TOLERANCE               =   property.getNumber("Tolerance")
 
 function onTick()
-	self={x=input.getNumber(1),y=input.getNumber(2),z=input.getNumber(3),rx=input.getNumber(4),ry=input.getNumber(5),rz=input.getNumber(6)}
-    self.IJK=IJK(self.rx,self.ry,self.rz)
 
+    guidance = Vec(0, 0, 0)
 
+    if RADAR_TYPE == 0 then -- direct
+        guidance.x = input.getNumber(1)
+        guidance.y = input.getNumber(2)
+    else -- everything else
+        GPS = Vec(input.getNumber(4), input.getNumber(8), input.getNumber(12))
+        targets = {}
 
+        if input.getBool(1) == true then -- there is a target
+
+            -- fetch all targets
+	        for i = 1, 8 do
+                if (input.getBool((i*4)-3)) then
+                    distance = input.getNumber((i*4)-3)
+                    radarX = input.getNumber((i*4)-2)
+                    radarY = input.getNumber((i*4)-1)
+                    targets[i] = Vec(radarX, radarY, distance)
+                    last_locked = i
+                end
+            end
+
+            if RADAR_PRIORITY == 0 then -- default
+                guidance = targets[1]
+            elseif RADAR_PRIORITY == 1 then -- closest to gps
+                lowest = Inf
+                candidate = Vec(0, 0, 0)
+
+                for target in targets do
+                    deviation = Len(Sub(Cartesian(target), GPS))
+                    if deviation < lowest then
+                        candidate = target
+                    end
+                end
+
+                guidance = candidate
+
+            elseif RADAR_PRIORITY == 2 then -- closest to missile
+                lowest = Inf
+                candidate = Vec(0, 0, 0)
+
+                for target in targets do
+                    deviation = target.z -- distance
+                    if deviation < lowest then
+                        candidate = target
+                    end
+                end
+
+                guidance = candidate
+
+            elseif RADAR_PRIORITY == 3 then -- last in list
+                guidance = targets[last_locked]
+
+            elseif RADAR_PRIORITY == 4 then -- last in list within radius of gps
+                for i = #targets, 1, -1 do
+                    target = targets[i]
+                    deviation = Len(Sub(Cartesian(target), GPS))
+                    if deviation < TOLERANCE then
+                        guidance = target
+                    end
+                end
+            end
+        end
+    end
+
+    output.setNumber(1, guidance.x)
+    output.setNumber(2, guidance.y)
 end

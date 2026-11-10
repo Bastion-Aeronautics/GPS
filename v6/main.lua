@@ -235,10 +235,10 @@ EVASION_ANGLE           =   property.getNumber("Evasion Angle") -- in degrees
 TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
 DIVE_ANGLE              =   property.getNumber("Dive Angle")
 
-RADAR_TYPE              =   property.getNumber("Input Type")
+-- RADAR_TYPE              =   property.getNumber("Input Type")
 ALLOW_LOCK              =   property.getNumber("Allow Acquire")
-RADAR_PRIORITY          =   property.getNumber("Prioritise")
-TOLERANCE               =   property.getNumber("Tolerance")
+-- RADAR_PRIORITY          =   property.getNumber("Prioritise")
+-- TOLERANCE               =   property.getNumber("Tolerance")
 
 
 X_GAIN                  =   property.getNumber("Pitch Gain")
@@ -280,7 +280,6 @@ function onTick()
     if elapsed > BOOST_DELAY then output.setBool(1, true) end
 
     output.setBool(2, radar_enabled) -- update radar state
-
 
     -- main state machine
     if state == 0 then
@@ -349,6 +348,8 @@ function onTick()
 
         elseif CRUISE_ALTITUDE == 3 then
             -- terrain avoidance (have some idea how to make this)
+
+            
 
         end
 
