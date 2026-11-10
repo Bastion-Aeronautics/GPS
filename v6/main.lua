@@ -215,7 +215,7 @@ EJECT_DIRECTION         =   property.getNumber("Eject Direction")
 EJECT_DURATION          =   property.getNumber("Eject Duration")
 
 -- Absolute, Relative to target
-ALTITUDE_MODE           =   property.getNumber("Altitude Mode")
+ALTITUDE_MODE           =   property.getBool("Altitude Mode")
 
 ROLL_CONTROL            =   property.getBool("Active Roll Control")
 
@@ -249,8 +249,8 @@ Y_TRIM                  =   property.getNumber("Yaw Trim")
 R_GAIN                  =   property.getNumber("Roll Gain")
 R_TRIM                  =   property.getNumber("Roll Trim")
 
-aoa                     =   property.getNumber("Level Angle")
-margin                  =   property.getNumber("Margin")
+AOA                     =   property.getNumber("Level Angle")
+MARGIN                  =   property.getNumber("Margin")
 
 function onTick()
     -- reset guidance so theres no accidentally left over steering outputs from the last cycle
@@ -267,6 +267,7 @@ function onTick()
 
     -- global delta vector
     g_delta = Sub(target, self)
+    g_delta_flat = Vec(g_delta.x, 0, g_delta.z)
 
     -- main state machine
     if state == 0 then
@@ -322,6 +323,23 @@ function onTick()
         elseif CRUISE_PATTERN == 1 then
             -- level flight
 
+            -- relative altitude
+            if ALTITUDE_MODE == 0 then
+                altitude_setpoint = CRUISE_ALTITUDE
+            else
+                altitude_setpoint = CRUISE_ALTITUDE + target.y
+            end
+
+            -- generate aimpoint
+            pitch_setpoint = Clamp((altitude_setpoint - self.y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+			aimpoint = Vec(g_delta.x, (math.tan(pitch_setpoint)) * Len(g_delta_flat), g_delta.z)
+
+        elseif CRUISE_PATTERN == 2 then
+            -- high arc (no idea how to make this)
+
+        elseif CRUISE_ALTITUDE == 3 then
+            -- terrain avoidance (have some idea how to make this)
+
         end
 
         if FLATTEN_LARGE_TURN then
@@ -331,7 +349,17 @@ function onTick()
         guidance = Sphere(Local(aimpoint, self.IJK))
 
         -- go to terminal when within distance
-        if Len(g_delta) < TERMINAL_DISTANCE then state = 3 end
+        if MODE == 0 then -- target will always be the actual target
+            if Len(g_delta) < TERMINAL_DISTANCE then state = 3 end
+        elseif MODE == 1 then -- might be a waypoint
+            if Len(g_delta) < TERMINAL_DISTANCE and #waypoints == 1 then state = 3
+            elseif Len(g_delta) < MARGIN and #waypoints > 1 then
+                table.remove(waypoints, 1)
+                target = waypoints[1]
+            end
+
+        end
+
 
     elseif state == 3 then
         -- terminal
