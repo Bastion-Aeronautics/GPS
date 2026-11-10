@@ -207,6 +207,7 @@ aimpoint = Vec(0,0,0)
 
 GUIDE_DELAY             =   property.getNumber("Guidance Delay")
 BOOST_DELAY             =   property.getNumber("Booster Delay")
+AUXILIARY_DELAY         =   property.getNumber("Auxiliary Delay")
 
 -- Target, Waypoint, Datalink
 MODE                    =   property.getNumber("Mode")
@@ -249,6 +250,8 @@ Y_TRIM                  =   property.getNumber("Yaw Trim")
 R_GAIN                  =   property.getNumber("Roll Gain")
 R_TRIM                  =   property.getNumber("Roll Trim")
 
+EXPONENT                =   property.getNumber("Guidance Exponent") -- changes the response curve
+
 AOA                     =   property.getNumber("Level Angle")
 MARGIN                  =   property.getNumber("Margin")
 
@@ -259,6 +262,9 @@ function onTick()
 	self={x=input.getNumber(1),y=input.getNumber(2),z=input.getNumber(3),rx=input.getNumber(4),ry=input.getNumber(5),rz=input.getNumber(6),pitch=input.getNumber(15),roll=input.getNumber(16)}
     self.IJK=IJK(self.rx,self.ry,self.rz)
 
+    -- normalizes the radar angles to be the same unit as Sphere()
+    radar={x=(input.getNumber(10)/8)*Tau,y=(input.getNumber(11)/8)*Tau}
+
     -- Always TRUE once missile is launched
     if input.getBool(1) then launched = true end
 
@@ -268,6 +274,10 @@ function onTick()
     -- global delta vector
     g_delta = Sub(target, self)
     g_delta_flat = Vec(g_delta.x, 0, g_delta.z)
+
+    if elapsed > AUXILIARY_DELAY then
+        output.setBool(3, true) -- auxiliary output for things such as staging and etc
+    end
 
     -- main state machine
     if state == 0 then
@@ -331,7 +341,7 @@ function onTick()
             end
 
             -- generate aimpoint
-            pitch_setpoint = Clamp((altitude_setpoint - self.y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE)
+            pitch_setpoint = Clamp((altitude_setpoint - self.y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE) + AOA
 			aimpoint = Vec(g_delta.x, (math.tan(pitch_setpoint)) * Len(g_delta_flat), g_delta.z)
 
         elseif CRUISE_PATTERN == 2 then
@@ -346,33 +356,36 @@ function onTick()
             -- if the next aimpoint is more than 90 degrees away, flatten the delta vector to stay level
             if Dot(Norm(aimpoint), Norm(self.IJK.x)) < 0 then aimpoint.y = 0 end
         end
-        guidance = Sphere(Local(aimpoint, self.IJK))
 
         -- go to terminal when within distance
         if MODE == 0 then -- target will always be the actual target
             if Len(g_delta) < TERMINAL_DISTANCE then state = 3 end
-        elseif MODE == 1 then -- might be a waypoint
-            if Len(g_delta) < TERMINAL_DISTANCE and #waypoints == 1 then state = 3
-            elseif Len(g_delta) < MARGIN and #waypoints > 1 then
+        elseif MODE ~= 0 then -- might be a waypoint
+            if Len(g_delta) < TERMINAL_DISTANCE and #waypoints == 1 then state = 3 -- is the last waypoint, go to terminal
+            elseif Len(g_delta) < MARGIN and #waypoints > 1 then -- is not the last waypoint, remove waypoint and set next as target
                 table.remove(waypoints, 1)
                 target = waypoints[1]
             end
-
         end
+
+        guidance = Sphere(Local(aimpoint, self.IJK))
 
 
     elseif state == 3 then
         -- terminal
 
         if TERMINAL_PATTERN == 0 then
-            
+
             aimpoint = g_delta -- keep going directly towards the target
 
         elseif TERMINAL_PATTERN == 1 then
             -- change altitude to [pop_up height] for the duration of terminal
 
-            
+
+        elseif TERMINAL_PATTERN == 2 then
+            -- evasive
         end
+
     end
 
     if launched and ROLL_CONTROL then
@@ -382,9 +395,12 @@ function onTick()
         guidance.z = 0
     end
 
-    output.setNumber(1, Clamp((guidance.x * X_GAIN) + X_TRIM, -1, 1))   -- yaw
-    output.setNumber(2, Clamp((guidance.y * Y_GAIN) + Y_TRIM, -1, 1))   -- pitch
-    output.setNumber(3, Clamp((guidance.z * R_GAIN) + R_TRIM, -1, 1))   -- roll
+    -- guidance outputs
+
+    -- /Pi ensures that a target directly behind corresponds to an ouput of 1
+    output.setNumber(1, Clamp(((guidance.x/Pi)^EXPONENT * X_GAIN) + X_TRIM, -1, 1))   -- yaw
+    output.setNumber(2, Clamp(((guidance.y/Pi)^EXPONENT * Y_GAIN) + Y_TRIM, -1, 1))   -- pitch
+    output.setNumber(3, Clamp(((guidance.z)             * R_GAIN) + R_TRIM, -1, 1))   -- roll
     output.setNumber(4, debug_state)                                    -- the funny flavour text
     output.setNumber(8, Round(Len(g_delta)))                            -- distance to target
 end
