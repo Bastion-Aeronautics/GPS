@@ -3,10 +3,12 @@
 - ✅ Vector based
 - ⬛ Better code factoring to not write the altitude controller 3 different times
 
-- ⬛ Waypoints system
+- ✅ Waypoints system
 
 - ⬛ Smarter terrain avoidance (preferably live mapping etc)
 - ⬛ Some sort of guidance law implemented (PN, APN)
 - ⬛ Output shaping and auto-trim
 
 - ⬛ Cruise mode: cruise, arc, direct
+
+- ✅ Flatten turn to prevent nose diving into the ground
