@@ -18,3 +18,6 @@
 ### Output Channels:
 
 #### Boolean:
+1. **Booster**
+2. **Arm**
+3. **Auxiliary**

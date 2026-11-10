@@ -106,7 +106,7 @@ function Cartesian(A)return Vec(A.z*Cos(A.y)*Sin(A.x),A.z*Cos(A.y)*Cos(A.x),A.z*
 
 -- RADAR
 -- Input Type: off = missile  on = radar
--- Allow Acquire: 0 = radar off  1 = radar on in terminal  2 = radar on at all times
+-- Allow Acquire: 0 = radar on in terminal  1 = radar on at all times
 -- Prioritise: 0 = default  1 = closeset to GPS  2 = closest to missile  3 = furthest from missile (anti chaff)  4 = smart (anti chaff anti distractions)
 
 
@@ -277,13 +277,14 @@ function onTick()
     g_delta = Sub(target, self)
     g_delta_flat = Vec(g_delta.x, 0, g_delta.z)
 
-    if elapsed > AUXILIARY_DELAY then
-        output.setBool(3, true) -- auxiliary output for things such as staging and etc
-    end
+    -- auxiliary output for things such as staging and etc
+    if elapsed > AUXILIARY_DELAY then output.setBool(3, true) end
 
-    if ALLOW_LOCK ~= 0 then
-        output.setBool(2, radar_enabled) -- update radar state
-    end
+    -- turn on booster once the delay is up
+    if elapsed > BOOST_DELAY then output.setBool(1, true) end
+
+    output.setBool(2, radar_enabled) -- update radar state
+
 
     -- main state machine
     if state == 0 then
@@ -303,9 +304,6 @@ function onTick()
 
     elseif state == 1 then
         -- post launch: perform ejection turn and waiting
-
-        -- turn on booster once the delay is up
-        if elapsed > BOOST_DELAY then output.setBool(1, true) end
 
         -- ejection turn
         -- 0 = off  1 = up  2 = down  3 = left  4 = right
@@ -372,7 +370,7 @@ function onTick()
             end
         end
 
-        if ALLOW_LOCK == 1 then radar_enabled = true end
+        if ALLOW_LOCK == 0 then radar_enabled = true end
 
         guidance = Sphere(Local(aimpoint, self.IJK))
 
@@ -391,6 +389,8 @@ function onTick()
         elseif TERMINAL_PATTERN == 2 then
             -- evasive
         end
+
+        if ALLOW_LOCK == 1 then radar_enabled = true end
 
     end
 
