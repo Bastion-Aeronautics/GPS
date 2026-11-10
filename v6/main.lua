@@ -205,49 +205,49 @@ target = Vec(0,0,0)
 waypoints = {}
 aimpoint = Vec(0,0,0)
 
-guide_delay             =   property.getNumber("Guidance Delay")
-boost_delay             =   property.getNumber("Booster Delay")
+GUIDE_DELAY             =   property.getNumber("Guidance Delay")
+BOOST_DELAY             =   property.getNumber("Booster Delay")
 
 -- Target, Waypoint, Datalink
-mode                    =   property.getNumber("Mode")
+MODE                    =   property.getNumber("Mode")
 
-eject_direction         =   property.getNumber("Eject Direction")
-eject_duration          =   property.getNumber("Eject Duration")
+EJECT_DIRECTION         =   property.getNumber("Eject Direction")
+EJECT_DURATION          =   property.getNumber("Eject Duration")
 
 -- Absolute, Relative to target
-altitude_mode           =   property.getNumber("Altitude Mode")
+ALTITUDE_MODE           =   property.getNumber("Altitude Mode")
 
-roll_control            =   property.getBool("Active Roll Control")
+ROLL_CONTROL            =   property.getBool("Active Roll Control")
 
 -- Direct, Level, Arc, Terrain
-cruise_pattern          =   property.getNumber("Cruise Pattern")
-cruise_altitude         =   property.getNumber("Altitude")
-max_angle               =   property.getNumber("Max Angle")
-altitude_gain           =   property.getNumber("Altitude Gain")
+CRUISE_PATTERN          =   property.getNumber("Cruise Pattern")
+CRUISE_ALTITUDE         =   property.getNumber("Altitude")
+MAX_ANGLE               =   property.getNumber("Max Angle")
+ALTITUDE_GAIN           =   property.getNumber("Altitude Gain")
 
-flatten_large_turn      =   property.getBool("Restrict Pitch During Turns")
+FLATTEN_LARGE_TURN      =   property.getBool("Restrict Pitch During Turns")
 
-terrain_margin          =   property.getNumber("Terrain Follow Margin")
+TERRAIN_MARGIN          =   property.getNumber("Terrain Follow Margin")
 
-terminal_distance       =   property.getNumber("Terminal Distance")
-terminal_pattern        =   property.getNumber("Terminal Pattern")
-evasion_angle           =   property.getNumber("Evasion Angle") -- in degrees
+TERMINAL_DISTANCE       =   property.getNumber("Terminal Distance")
+TERMINAL_PATTERN        =   property.getNumber("Terminal Pattern")
+EVASION_ANGLE           =   property.getNumber("Evasion Angle") -- in degrees
 
-popup_height            =   property.getNumber("Pop-up Height")
-dive_angle              =   property.getNumber("Dive Angle")
+TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
+DIVE_ANGLE              =   property.getNumber("Dive Angle")
 
-radar_type              =   property.getNumber("Input Type")
-allow_lock              =   property.getNumber("Allow Acquire")
-radar_priority          =   property.getNumber("Prioritise")
-tolerance               =   property.getNumber("Tolerance")
+RADAR_TYPE              =   property.getNumber("Input Type")
+ALLOW_LOCK              =   property.getNumber("Allow Acquire")
+RADAR_PRIORITY          =   property.getNumber("Prioritise")
+TOLERANCE               =   property.getNumber("Tolerance")
 
 
-x_gain                  =   property.getNumber("Pitch Gain")
-x_trim                  =   property.getNumber("Pitch Trim")
-y_gain                  =   property.getNumber("Yaw Gain")
-y_trim                  =   property.getNumber("Yaw Trim")
-r_gain                  =   property.getNumber("Roll Gain")
-r_trim                  =   property.getNumber("Roll Trim")
+X_GAIN                  =   property.getNumber("Pitch Gain")
+X_TRIM                  =   property.getNumber("Pitch Trim")
+Y_GAIN                  =   property.getNumber("Yaw Gain")
+Y_TRIM                  =   property.getNumber("Yaw Trim")
+R_GAIN                  =   property.getNumber("Roll Gain")
+R_TRIM                  =   property.getNumber("Roll Trim")
 
 aoa                     =   property.getNumber("Level Angle")
 margin                  =   property.getNumber("Margin")
@@ -271,9 +271,9 @@ function onTick()
     -- main state machine
     if state == 0 then
         -- pre launch:
-        if mode == 0 then
+        if MODE == 0 then
             if input.getNumber(7) ~= 0 then target = Vec(input.getNumber(7), input.getNumber(8), input.getNumber(9)) end
-        elseif mode == 1 then
+        elseif MODE == 1 then
             if input.getBool(2) then
                 if input.getNumber(7) ~= 0 then waypoints.insert(Vec(input.getNumber(7), input.getNumber(8), input.getNumber(9))) end
                 target = waypoints[1]
@@ -288,66 +288,75 @@ function onTick()
         -- post launch: perform ejection turn and waiting
 
         -- turn on booster once the delay is up
-        if elapsed > boost_delay then output.setBool(1, true) end
+        if elapsed > BOOST_DELAY then output.setBool(1, true) end
 
         -- ejection turn
         -- 0 = off  1 = up  2 = down  3 = left  4 = right
-        if eject_direction ~= 0 then
-            if elapsed <= eject_duration then 
-                if      eject_direction == 1 then guidance.y = 1
-                elseif  eject_direction == 2 then guidance.y = -1
-                elseif  eject_direction == 3 then guidance.x = -1
-                elseif  eject_direction == 4 then guidance.x = 1
+        if EJECT_DIRECTION ~= 0 then
+            if elapsed <= EJECT_DURATION then 
+                if      EJECT_DIRECTION == 1 then guidance.y = 1
+                elseif  EJECT_DIRECTION == 2 then guidance.y = -1
+                elseif  EJECT_DIRECTION == 3 then guidance.x = -1
+                elseif  EJECT_DIRECTION == 4 then guidance.x = 1
                 end
             end
         end
 
         -- exit phase once either guidance delay or ejection delay finishes (whichever one is last)
-        if elapsed > Max(guide_delay, eject_duration) then state = 2 end
+        if elapsed > Max(GUIDE_DELAY, EJECT_DURATION) then state = 2 end
 
         -- debug state setting
-        if elapsed <= eject_duration then debug_state = 3 end -- ejecting
-        if elapsed <= guide_delay and elapsed > eject_duration then debug_state = 2 end -- waiting for guidance
-        if elapsed > boost_delay and elapsed > eject_duration then debug_state = 1 end -- boosting and done ejecting
+        if elapsed <= EJECT_DURATION then debug_state = 3 end -- ejecting
+        if elapsed <= GUIDE_DELAY and elapsed > EJECT_DURATION then debug_state = 2 end -- waiting for guidance
+        if elapsed > BOOST_DELAY and elapsed > EJECT_DURATION then debug_state = 1 end -- boosting and done ejecting
 
     elseif state == 2 then
         -- cruise: go to the target yknow
 
-        if cruise_pattern == 0 then
+        if CRUISE_PATTERN == 0 then
             -- direct
             aimpoint = g_delta
 
             debug_state = 5
 
-        elseif cruise_pattern == 1 then
+        elseif CRUISE_PATTERN == 1 then
             -- level flight
 
         end
 
-        if flatten_large_turn then
+        if FLATTEN_LARGE_TURN then
             -- if the next aimpoint is more than 90 degrees away, flatten the delta vector to stay level
             if Dot(Norm(aimpoint), Norm(self.IJK.x)) < 0 then aimpoint.y = 0 end
         end
         guidance = Sphere(Local(aimpoint, self.IJK))
 
         -- go to terminal when within distance
-        if Len(g_delta) < terminal_distance then state = 3 end
+        if Len(g_delta) < TERMINAL_DISTANCE then state = 3 end
 
     elseif state == 3 then
         -- terminal
 
+        if TERMINAL_PATTERN == 0 then
+            
+            aimpoint = g_delta -- keep going directly towards the target
+
+        elseif TERMINAL_PATTERN == 1 then
+            -- change altitude to [pop_up height] for the duration of terminal
+
+            
+        end
     end
 
-    if launched and roll_control then
+    if launched and ROLL_CONTROL then
         -- roll control: keep the missile level with the horizon
         guidance.z = -self.roll
     else
         guidance.z = 0
     end
 
-    output.setNumber(1, Clamp((guidance.x * x_gain) + x_trim, -1, 1))   -- yaw
-    output.setNumber(2, Clamp((guidance.y * y_gain) + y_trim, -1, 1))   -- pitch
-    output.setNumber(3, Clamp((guidance.z * r_gain) + r_trim, -1, 1))   -- roll
+    output.setNumber(1, Clamp((guidance.x * X_GAIN) + X_TRIM, -1, 1))   -- yaw
+    output.setNumber(2, Clamp((guidance.y * Y_GAIN) + Y_TRIM, -1, 1))   -- pitch
+    output.setNumber(3, Clamp((guidance.z * R_GAIN) + R_TRIM, -1, 1))   -- roll
     output.setNumber(4, debug_state)                                    -- the funny flavour text
     output.setNumber(8, Round(Len(g_delta)))                            -- distance to target
 end
