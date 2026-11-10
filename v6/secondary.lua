@@ -59,17 +59,22 @@ RADAR_PRIORITY          =   property.getNumber("Prioritise")
 TOLERANCE               =   property.getNumber("Tolerance")
 
 function onTick()
-
+    has_target = false
     guidance = Vec(0, 0, 0)
 
     if RADAR_TYPE == 0 then -- direct
         guidance.x = input.getNumber(1)
         guidance.y = input.getNumber(2)
+        if input.getNumber(1) ~= 0 or input.getNumber(2) ~= 0 then
+            has_target = true
+        end
+
     else -- everything else
         GPS = Vec(input.getNumber(4), input.getNumber(8), input.getNumber(12))
         targets = {}
 
         if input.getBool(1) == true then -- there is a target
+            has_target = true
 
             -- fetch all targets
 	        for i = 1, 8 do
@@ -127,4 +132,5 @@ function onTick()
 
     output.setNumber(1, guidance.x)
     output.setNumber(2, guidance.y)
+    output.setBool(1, has_target)
 end
