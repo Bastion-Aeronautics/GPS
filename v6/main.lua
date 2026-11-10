@@ -25,9 +25,6 @@ function Round(a) return Floor(a+0.5) end
 --- @field z number The z-coordinate of the vector.
 
 --- @function Creates a vector with x, y, and z components
---- @param x number The x-coordinate of the vector.
---- @param y number The y-coordinate of the vector.
---- @param z number The z-coordinate of the vector.
 --- @return vector
 function Vec(x,y,z)return{x=x,y=y,z=z}end
 
@@ -55,7 +52,6 @@ function Lerp(A,B,t)return Add(A,Scale(Sub(B,A),t))end
 --- @param rx number The x rotation in radians.
 --- @param ry number The y rotation in radians.
 --- @param rz number The z rotation in radians.
---- @return vector
 function IJK(rx,ry,rz)local cx,cy,cz=Cos(rx),Cos(ry),Cos(rz)local sx,sy,sz=Sin(rx),Sin(ry),Sin(rz) return Vec(Vec(cy*cz,cy*sz,-sy),Vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy),Vec(cx*sy*cz+sx*sz,cx*sy*sz-sx*cz,cx*cy))end
 
 -- Projects vectors from global to local space and vice versa
@@ -308,7 +304,7 @@ function onTick()
         -- ejection turn
         -- 0 = off  1 = up  2 = down  3 = left  4 = right
         if EJECT_DIRECTION ~= 0 then
-            if elapsed <= EJECT_DURATION then 
+            if elapsed <= EJECT_DURATION then
                 if      EJECT_DIRECTION == 1 then guidance.y = 1
                 elseif  EJECT_DIRECTION == 2 then guidance.y = -1
                 elseif  EJECT_DIRECTION == 3 then guidance.x = -1
