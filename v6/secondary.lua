@@ -1,3 +1,5 @@
+m=math
+
 Pi=m.pi
 Tau=m.pi*2
 Inf=m.huge
