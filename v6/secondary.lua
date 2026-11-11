@@ -1,6 +1,7 @@
 Pi=math.pi
 Tau=math.pi*2
 Inf=math.huge
+Deg=math.pi/180
 Sin=math.sin
 Cos=math.cos
 Tan=math.tan
@@ -50,8 +51,8 @@ function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
 
 -- Projects vectors from cartesian to spherical coordinates and vice versa
-function Sphere(A)return Vec(Atan(A.x,A.y),Asin(A.z/Len(A)),Len(A))end
-function Cartesian(A)return Vec(A.z*Cos(A.y)*Sin(A.x),A.z*Cos(A.y)*Cos(A.x),A.z*Sin(A.y))end
+function Sphere(A)return Vec(Atan(A.x,A.z),Atan(A.y,A.z),Len(A))end
+function Cartesian(A)local z_sign = Cos(A.x) < 0 and -1 or 1 local direction = Vec(Sin(A.x) * Cos(A.y) * z_sign,Sin(A.y) * Cos(A.x) * z_sign,Cos(A.x) * Cos(A.y) * z_sign)return Scale(Norm(direction), A.z)end
 
 RADAR_TYPE              =   property.getNumber("Input Type")
 
