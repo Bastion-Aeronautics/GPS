@@ -241,10 +241,10 @@ EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * 
 EVADE_FREQUENCY         =   property.getNumber("Evade Frequency") / 60
 
 
-TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
-DIVE_ANGLE              =   property.getNumber("Dive Angle")
+-- TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
+-- DIVE_ANGLE              =   property.getNumber("Dive Angle")
 
--- RADAR_TYPE              =   property.getNumber("Input Type")
+RADAR_TYPE              =   property.getNumber("Input Type")
 ALLOW_LOCK              =   property.getNumber("Allow Acquire")
 -- RADAR_PRIORITY          =   property.getNumber("Prioritise")
 -- TOLERANCE               =   property.getNumber("Tolerance")
@@ -260,7 +260,9 @@ R_TRIM                  =   property.getNumber("Roll Trim")
 EXPONENT                =   property.getNumber("Guidance Exponent") -- changes the response curve
 
 AOA                     =   property.getNumber("Level Angle")
-MARGIN                  =   property.getNumber("Margin")
+
+WAYPOINT_MARGIN         =   property.getNumber("Waypoint Radius")
+MARGIN                  =   property.getNumber("Turn Margin")
 
 TIMEOUT                 =   property.getNumber("Timeout") -- time in ticks before missile shuts off forever
 
@@ -276,7 +278,7 @@ function onTick()
     self.IJK=IJK(self.rx,self.ry,self.rz)
 
     -- normalizes the radar angles to be the same unit as Sphere()
-    radar={x=input.getNumber(10),y=input.getNumber(11)}
+    
 
     -- laser distance sensor
     laser = input.getNumber(13)
@@ -303,6 +305,12 @@ function onTick()
 
     output.setBool(2, radar_enabled) -- update radar state
 
+    if RADAR_TYPE == true then -- is missile radar
+        radar={x=input.getNumber(10)*Pi/X_GAIN,y=input.getNumber(11)*Pi/Y_GAIN} -- makes sure the radar signal bypasses gain values
+    else
+        radar={x=input.getNumber(10),y=input.getNumber(11)}
+    end
+    
     -- main state machine
     if state == 0 then
         -- pre launch:
@@ -380,7 +388,7 @@ function onTick()
             if Len(g_delta_flat) < TERMINAL_DISTANCE then state = 3 end
         elseif MODE ~= 0 then -- might be a waypoint
             if Len(g_delta_flat) < TERMINAL_DISTANCE and #waypoints == 1 then state = 3 -- is the last waypoint, go to terminal
-            elseif Len(g_delta) < MARGIN and #waypoints > 1 then -- is not the last waypoint, remove waypoint and set next as target
+            elseif Len(g_delta) < WAYPOINT_MARGIN and #waypoints > 1 then -- is not the last waypoint, remove waypoint and set next as target
                 table.remove(waypoints, 1)
                 target = waypoints[1]
             end
