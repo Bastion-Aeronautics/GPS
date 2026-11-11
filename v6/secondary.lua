@@ -66,7 +66,7 @@ function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(i
 function Sphere(A)return Vec(Atan(A.x,A.z),Atan(A.y,A.z),Len(A))end
 function Cartesian(A)local z_sign = Cos(A.x) < 0 and -1 or 1 local direction = Vec(Sin(A.x) * Cos(A.y) * z_sign,Sin(A.y) * Cos(A.x) * z_sign,Cos(A.x) * Cos(A.y) * z_sign)return Scale(Norm(direction), A.z)end
 
-RADAR_TYPE              =   property.getNumber("Input Type")
+RADAR_TYPE              =   property.getBool("Input Type")
 
 RADAR_PRIORITY          =   property.getNumber("Prioritise")
 TOLERANCE               =   property.getNumber("Tolerance")
@@ -75,7 +75,7 @@ function onTick()
     has_target = false
     guidance = Vec(0, 0, 0)
 
-    if RADAR_TYPE == 0 then -- direct
+    if RADAR_TYPE == 1 then -- direct
         guidance.x = input.getNumber(1)
         guidance.y = input.getNumber(2)
         if input.getNumber(1) ~= 0 or input.getNumber(2) ~= 0 then
@@ -145,5 +145,6 @@ function onTick()
 
     output.setNumber(1, guidance.x)
     output.setNumber(2, guidance.y)
+    if RADAR_TYPE == 0 then output.setNumber(3, guidance.z) end
     output.setBool(1, has_target)
 end

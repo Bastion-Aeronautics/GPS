@@ -280,8 +280,6 @@ function onTick()
 	self={x=input.getNumber(1),y=input.getNumber(2),z=input.getNumber(3),rx=input.getNumber(4),ry=input.getNumber(5),rz=input.getNumber(6),pitch=input.getNumber(15),roll=input.getNumber(16)}
     self.IJK=IJK(self.rx,self.ry,self.rz)
 
-    -- normalizes the radar angles to be the same unit as Sphere()
-    
 
     -- laser distance sensor
     laser = input.getNumber(13)
@@ -311,7 +309,7 @@ function onTick()
     if RADAR_TYPE == true then -- is missile radar
         radar={x=input.getNumber(10)*Pi/X_GAIN,y=input.getNumber(11)*Pi/Y_GAIN} -- makes sure the radar signal bypasses gain values
     else
-        radar={x=input.getNumber(10),y=input.getNumber(11)}
+        radar={x=input.getNumber(10),y=input.getNumber(11),z=input.getNumber(12)}
     end
 
     if input.getNumber(10) ~= 0 or input.getNumber(11) ~= 0 then radar_target = true end
@@ -409,12 +407,10 @@ function onTick()
         terminal_ticks = terminal_ticks + 1
 
         debug_state = 8
-
         if TERMINAL_PATTERN == 0 then
-
             aimpoint = Add(g_delta, Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_IN_TERMINAL))
 
-        elseif TERMINAL_PATTERN == 2 then
+        elseif TERMINAL_PATTERN == 1 then
             -- evasive
             debug_state = 9
 
@@ -423,11 +419,16 @@ function onTick()
             offset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks * EVADE_FREQUENCY)
             aimpoint = Add(Add(g_delta, Scale(side, offset)), Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_IN_TERMINAL))
         end
-        
+
         if ALLOW_LOCK == 1 then radar_enabled = true end
+
+        if radar_target == true then state = 4 end
 
         guidance = Sphere(Local(aimpoint, self.IJK))
 
+    elseif state == 4 then
+        -- radar guidance
+        guidance = radar
     end
 
     if launched and ROLL_CONTROL then
@@ -446,4 +447,3 @@ function onTick()
     output.setNumber(4, debug_state)                                    -- the funny flavour text
     output.setNumber(8, Round(Len(g_delta)))                            -- distance to target
 end
-
