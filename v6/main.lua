@@ -234,7 +234,7 @@ TERRAIN_MARGIN          =   property.getNumber("Terrain Follow Margin")
 TERMINAL_DISTANCE       =   property.getNumber("Terminal Distance")
 TERMINAL_PATTERN        =   property.getNumber("Terminal Pattern")
 EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * Deg -- in degrees (clamped)
-EVADE_FREQUENCY         =   property.getNumber("Evade Frequency")
+EVADE_FREQUENCY         =   property.getNumber("Evade Frequency") / 60
 
 
 TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
@@ -246,10 +246,10 @@ ALLOW_LOCK              =   property.getNumber("Allow Acquire")
 -- TOLERANCE               =   property.getNumber("Tolerance")
 
 
-X_GAIN                  =   property.getNumber("Pitch Gain")
-X_TRIM                  =   property.getNumber("Pitch Trim")
-Y_GAIN                  =   property.getNumber("Yaw Gain")
-Y_TRIM                  =   property.getNumber("Yaw Trim")
+X_GAIN                  =   property.getNumber("Yaw Gain")
+X_TRIM                  =   property.getNumber("Yaw Trim")
+Y_GAIN                  =   property.getNumber("Pitch Gain")
+Y_TRIM                  =   property.getNumber("Pitch Trim")
 R_GAIN                  =   property.getNumber("Roll Gain")
 R_TRIM                  =   property.getNumber("Roll Trim")
 
