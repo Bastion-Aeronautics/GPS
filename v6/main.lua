@@ -206,6 +206,8 @@ terminal_ticks = 0
 
 radar_enabled = false -- enable?
 
+terrain_points = {}
+
 GUIDE_DELAY             =   property.getNumber("Guidance Delay")
 BOOST_DELAY             =   property.getNumber("Booster Delay")
 AUXILIARY_DELAY         =   property.getNumber("Auxiliary Delay")
@@ -353,8 +355,6 @@ function onTick()
 
         elseif CRUISE_ALTITUDE == 3 then
             -- terrain avoidance (have some idea how to make this)
-
-            
 
         end
 
