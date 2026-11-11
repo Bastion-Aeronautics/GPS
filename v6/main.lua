@@ -1,5 +1,6 @@
 Pi=math.pi
 Tau=math.pi*2
+Inf=math.huge
 Sin=math.sin
 Cos=math.cos
 Tan=math.tan
@@ -201,6 +202,8 @@ target = Vec(0,0,0)
 waypoints = {}
 aimpoint = Vec(0,0,0)
 
+terminal_ticks = 0
+
 radar_enabled = false -- enable?
 
 GUIDE_DELAY             =   property.getNumber("Guidance Delay")
@@ -230,7 +233,9 @@ TERRAIN_MARGIN          =   property.getNumber("Terrain Follow Margin")
 
 TERMINAL_DISTANCE       =   property.getNumber("Terminal Distance")
 TERMINAL_PATTERN        =   property.getNumber("Terminal Pattern")
-EVASION_ANGLE           =   property.getNumber("Evasion Angle") -- in degrees
+EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * Pi / 180 -- in degrees (clamped)
+EVADE_FREQUENCY         =   1 / property.getNumber("Evade Frequency")
+
 
 TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
 DIVE_ANGLE              =   property.getNumber("Dive Angle")
@@ -374,6 +379,7 @@ function onTick()
 
     elseif state == 3 then
         -- terminal
+        terminal_ticks = terminal_ticks + 1
 
         if TERMINAL_PATTERN == 0 then
 
@@ -385,9 +391,15 @@ function onTick()
 
         elseif TERMINAL_PATTERN == 2 then
             -- evasive
-        end
+            side = Norm(Vec(g_delta.z, 0, -g_delta.x))
 
+            offset = distance * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks / EVADE_FREQUENCY)
+            aimpoint = Add(g_delta, Scale(side, offset))
+        end
+        
         if ALLOW_LOCK == 1 then radar_enabled = true end
+
+        guidance = Sphere(Local(aimpoint, self.IJK))
 
     end
 
@@ -407,3 +419,4 @@ function onTick()
     output.setNumber(4, debug_state)                                    -- the funny flavour text
     output.setNumber(8, Round(Len(g_delta)))                            -- distance to target
 end
+
