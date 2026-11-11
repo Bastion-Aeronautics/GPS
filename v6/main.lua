@@ -222,6 +222,7 @@ ALTITUDE_MODE           =   property.getBool("Altitude Mode")
 ROLL_CONTROL            =   property.getBool("Active Roll Control")
 
 -- Direct, Level, Arc, Terrain
+ADD_HEIGHT_PER_DISTANCE =   property.getNumber("Loft")
 CRUISE_PATTERN          =   property.getNumber("Cruise Pattern")
 CRUISE_ALTITUDE         =   property.getNumber("Altitude")
 MAX_ANGLE               =   property.getNumber("Max Angle") * Deg
@@ -231,6 +232,7 @@ FLATTEN_LARGE_TURN      =   property.getBool("Restrict Pitch During Turns")
 
 TERRAIN_MARGIN          =   property.getNumber("Terrain Follow Margin")
 
+ADD_HEIGHT_IN_TERMINAL  =   property.getNumber("Terminal Loft")
 TERMINAL_DISTANCE       =   property.getNumber("Terminal Distance")
 TERMINAL_PATTERN        =   property.getNumber("Terminal Pattern")
 EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * Deg -- in degrees (clamped)
@@ -345,7 +347,7 @@ function onTick()
 
         if CRUISE_PATTERN == 0 then
             -- direct
-            aimpoint = g_delta
+            aimpoint = Add(g_delta, Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_PER_DISTANCE))
 
             debug_state = 5
 
@@ -363,10 +365,7 @@ function onTick()
             pitch_setpoint = Clamp((altitude_setpoint - self.y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE) + AOA
 			aimpoint = Vec(g_delta.x, (math.tan(pitch_setpoint)) * Len(g_delta_flat), g_delta.z)
 
-        elseif CRUISE_PATTERN == 2 then
-            -- high arc (no idea how to make this)
-
-        elseif CRUISE_ALTITUDE == 3 then
+        elseif CRUISE_ALTITUDE == 2 then
             -- terrain avoidance (have some idea how to make this)
 
             
@@ -374,7 +373,7 @@ function onTick()
         end
 
         -- if the next aimpoint is more than 90 degrees away, flatten the delta vector to stay level
-        if FLATTEN_LARGE_TURN then if Dot(Norm(aimpoint), Norm(self.IJK.x)) < 0 then aimpoint.y = 0 end end
+        if FLATTEN_LARGE_TURN then if Dot(Norm(aimpoint), Norm(self.IJK.x)) < 0 then aimpoint.y = self.y end end
 
         -- go to terminal when within distance
         if MODE == 0 then -- target will always be the actual target
@@ -400,7 +399,7 @@ function onTick()
 
         if TERMINAL_PATTERN == 0 then
 
-            aimpoint = g_delta -- keep going directly towards the target
+            aimpoint = Add(g_delta, Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_IN_TERMINAL))
 
         elseif TERMINAL_PATTERN == 1 then
             -- change altitude to [pop_up height] for the duration of terminal
@@ -413,7 +412,7 @@ function onTick()
             side = Norm(Vec(g_delta.z, 0, -g_delta.x))
 
             offset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks * EVADE_FREQUENCY)
-            aimpoint = Add(g_delta, Scale(side, offset))
+            aimpoint = Add(Add(g_delta, Scale(side, offset)), Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_IN_TERMINAL))
         end
         
         if ALLOW_LOCK == 1 then radar_enabled = true end
