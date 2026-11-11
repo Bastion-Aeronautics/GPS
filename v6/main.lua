@@ -224,7 +224,7 @@ ALTITUDE_MODE           =   property.getBool("Altitude Mode")
 ROLL_CONTROL            =   property.getBool("Active Roll Control")
 
 -- Direct, Level, Arc, Terrain
-ADD_HEIGHT_PER_DISTANCE =   property.getNumber("Loft")
+ADD_HEIGHT_PER_DISTANCE =   Tan(property.getNumber("Loft") * Deg) -- loft ANGLE
 CRUISE_PATTERN          =   property.getNumber("Cruise Pattern")
 CRUISE_ALTITUDE         =   property.getNumber("Altitude")
 MAX_ANGLE               =   property.getNumber("Max Angle") * Deg
@@ -234,7 +234,7 @@ FLATTEN_LARGE_TURN      =   property.getBool("Restrict Pitch During Turns")
 
 TERRAIN_MARGIN          =   property.getNumber("Terrain Follow Margin")
 
-ADD_HEIGHT_IN_TERMINAL  =   property.getNumber("Terminal Loft")
+ADD_HEIGHT_IN_TERMINAL  =   Tan(property.getNumber("Terminal Loft") * Deg)
 TERMINAL_DISTANCE       =   property.getNumber("Terminal Distance")
 TERMINAL_PATTERN        =   property.getNumber("Terminal Pattern")
 EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * Deg -- in degrees (clamped)
@@ -400,10 +400,6 @@ function onTick()
         if TERMINAL_PATTERN == 0 then
 
             aimpoint = Add(g_delta, Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_IN_TERMINAL))
-
-        elseif TERMINAL_PATTERN == 1 then
-            -- change altitude to [pop_up height] for the duration of terminal
-
 
         elseif TERMINAL_PATTERN == 2 then
             -- evasive
