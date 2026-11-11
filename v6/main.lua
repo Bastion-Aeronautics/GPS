@@ -1,6 +1,7 @@
 Pi=math.pi
 Tau=math.pi*2
 Inf=math.huge
+Deg=math.pi/180
 Sin=math.sin
 Cos=math.cos
 Tan=math.tan
@@ -60,8 +61,8 @@ function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
 
 -- Projects vectors from cartesian to spherical coordinates and vice versa
-function Sphere(A)return Vec(Atan(A.x,A.y),Asin(A.z/Len(A)),Len(A))end
-function Cartesian(A)return Vec(A.z*Cos(A.y)*Sin(A.x),A.z*Cos(A.y)*Cos(A.x),A.z*Sin(A.y))end
+function Sphere(A)return Vec(Atan(A.x,A.z),Atan(A.y,A.z),Len(A))end
+function Cartesian(A)local z_sign = Cos(A.x) < 0 and -1 or 1 local direction = Vec(Sin(A.x) * Cos(A.y) * z_sign,Sin(A.y) * Cos(A.x) * z_sign,Cos(A.x) * Cos(A.y) * z_sign)return Scale(Norm(direction), A.z)end
 
 -- PROPERTIES
 
@@ -208,7 +209,6 @@ radar_enabled = false -- enable?
 
 GUIDE_DELAY             =   property.getNumber("Guidance Delay")
 BOOST_DELAY             =   property.getNumber("Booster Delay")
-AUXILIARY_DELAY         =   property.getNumber("Auxiliary Delay")
 
 -- Target, Waypoint, Datalink
 MODE                    =   property.getNumber("Mode")
@@ -224,7 +224,7 @@ ROLL_CONTROL            =   property.getBool("Active Roll Control")
 -- Direct, Level, Arc, Terrain
 CRUISE_PATTERN          =   property.getNumber("Cruise Pattern")
 CRUISE_ALTITUDE         =   property.getNumber("Altitude")
-MAX_ANGLE               =   property.getNumber("Max Angle")
+MAX_ANGLE               =   property.getNumber("Max Angle") * Deg
 ALTITUDE_GAIN           =   property.getNumber("Altitude Gain")
 
 FLATTEN_LARGE_TURN      =   property.getBool("Restrict Pitch During Turns")
@@ -233,8 +233,8 @@ TERRAIN_MARGIN          =   property.getNumber("Terrain Follow Margin")
 
 TERMINAL_DISTANCE       =   property.getNumber("Terminal Distance")
 TERMINAL_PATTERN        =   property.getNumber("Terminal Pattern")
-EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * Pi / 180 -- in degrees (clamped)
-EVADE_FREQUENCY         =   1 / property.getNumber("Evade Frequency")
+EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * Deg -- in degrees (clamped)
+EVADE_FREQUENCY         =   property.getNumber("Evade Frequency")
 
 
 TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
@@ -258,7 +258,13 @@ EXPONENT                =   property.getNumber("Guidance Exponent") -- changes t
 AOA                     =   property.getNumber("Level Angle")
 MARGIN                  =   property.getNumber("Margin")
 
+TIMEOUT                 =   property.getNumber("Timeout") -- time in ticks before missile shuts off forever
+
 function onTick()
+    while TIMEOUT < elapsed do
+        -- nothing
+    end
+
     -- reset guidance so theres no accidentally left over steering outputs from the last cycle
     guidance = Vec(0,0,0)
 
@@ -266,7 +272,10 @@ function onTick()
     self.IJK=IJK(self.rx,self.ry,self.rz)
 
     -- normalizes the radar angles to be the same unit as Sphere()
-    radar={x=(input.getNumber(10)/8)*Tau,y=(input.getNumber(11)/8)*Tau}
+    radar={x=input.getNumber(10),y=input.getNumber(11)}
+
+    -- laser distance sensor
+    laser = input.getNumber(13)
 
     -- Always TRUE once missile is launched
     if input.getBool(1) then launched = true end
@@ -278,8 +287,12 @@ function onTick()
     g_delta = Sub(target, self)
     g_delta_flat = Vec(g_delta.x, 0, g_delta.z)
 
-    -- auxiliary output for things such as staging and etc
-    if elapsed > AUXILIARY_DELAY then output.setBool(3, true) end
+    -- local delta vector
+    l_delta = Local(g_delta, self.IJK)
+    -- send local offsets to radar LUA block for target prioritization
+    output.setNumber(5, l_delta.x)
+    output.setNumber(6, l_delta.y)
+    output.setNumber(7, l_delta.z)
 
     -- turn on booster once the delay is up
     if elapsed > BOOST_DELAY then output.setBool(1, true) end
@@ -309,10 +322,10 @@ function onTick()
         -- 0 = off  1 = up  2 = down  3 = left  4 = right
         if EJECT_DIRECTION ~= 0 then
             if elapsed <= EJECT_DURATION then
-                if      EJECT_DIRECTION == 1 then guidance.y = 1
-                elseif  EJECT_DIRECTION == 2 then guidance.y = -1
-                elseif  EJECT_DIRECTION == 3 then guidance.x = -1
-                elseif  EJECT_DIRECTION == 4 then guidance.x = 1
+                if      EJECT_DIRECTION == 1 then guidance.y = 10
+                elseif  EJECT_DIRECTION == 2 then guidance.y = -10
+                elseif  EJECT_DIRECTION == 3 then guidance.x = -10
+                elseif  EJECT_DIRECTION == 4 then guidance.x = 10
                 end
             end
         end
@@ -328,6 +341,8 @@ function onTick()
     elseif state == 2 then
         -- cruise: go to the target yknow
 
+        debug_state = 4
+
         if CRUISE_PATTERN == 0 then
             -- direct
             aimpoint = g_delta
@@ -338,7 +353,7 @@ function onTick()
             -- level flight
 
             -- relative altitude
-            if ALTITUDE_MODE == 0 then
+            if ALTITUDE_MODE == false then
                 altitude_setpoint = CRUISE_ALTITUDE
             else
                 altitude_setpoint = CRUISE_ALTITUDE + target.y
@@ -363,9 +378,9 @@ function onTick()
 
         -- go to terminal when within distance
         if MODE == 0 then -- target will always be the actual target
-            if Len(g_delta) < TERMINAL_DISTANCE then state = 3 end
+            if Len(g_delta_flat) < TERMINAL_DISTANCE then state = 3 end
         elseif MODE ~= 0 then -- might be a waypoint
-            if Len(g_delta) < TERMINAL_DISTANCE and #waypoints == 1 then state = 3 -- is the last waypoint, go to terminal
+            if Len(g_delta_flat) < TERMINAL_DISTANCE and #waypoints == 1 then state = 3 -- is the last waypoint, go to terminal
             elseif Len(g_delta) < MARGIN and #waypoints > 1 then -- is not the last waypoint, remove waypoint and set next as target
                 table.remove(waypoints, 1)
                 target = waypoints[1]
@@ -381,6 +396,8 @@ function onTick()
         -- terminal
         terminal_ticks = terminal_ticks + 1
 
+        debug_state = 8
+
         if TERMINAL_PATTERN == 0 then
 
             aimpoint = g_delta -- keep going directly towards the target
@@ -391,9 +408,11 @@ function onTick()
 
         elseif TERMINAL_PATTERN == 2 then
             -- evasive
+            debug_state = 9
+
             side = Norm(Vec(g_delta.z, 0, -g_delta.x))
 
-            offset = distance * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks / EVADE_FREQUENCY)
+            offset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks * EVADE_FREQUENCY)
             aimpoint = Add(g_delta, Scale(side, offset))
         end
         
@@ -413,8 +432,8 @@ function onTick()
     -- guidance outputs
 
     -- /Pi ensures that a target directly behind corresponds to an ouput of 1
-    output.setNumber(1, Clamp(((guidance.x/Pi)^EXPONENT * X_GAIN) + X_TRIM, -1, 1))   -- yaw
-    output.setNumber(2, Clamp(((guidance.y/Pi)^EXPONENT * Y_GAIN) + Y_TRIM, -1, 1))   -- pitch
+    output.setNumber(1, Clamp((guidance.x/Pi * X_GAIN) + X_TRIM, -1, 1))   -- yaw
+    output.setNumber(2, Clamp((guidance.y/Pi * Y_GAIN) + Y_TRIM, -1, 1))   -- pitch
     output.setNumber(3, Clamp(((guidance.z)             * R_GAIN) + R_TRIM, -1, 1))   -- roll
     output.setNumber(4, debug_state)                                    -- the funny flavour text
     output.setNumber(8, Round(Len(g_delta)))                            -- distance to target
