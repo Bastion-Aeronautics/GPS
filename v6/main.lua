@@ -1,20 +1,22 @@
-Pi=math.pi
-Tau=math.pi*2
-Inf=math.huge
-Deg=math.pi/180
-Sin=math.sin
-Cos=math.cos
-Tan=math.tan
-Acos=math.acos
-Asin=math.asin
-Atan=math.atan
-Sqrt=math.sqrt
+m=math
 
-Max = math.max
-Min = math.min
-Floor = math.floor
-Ceil = math.ceil
-Abs = math.abs
+Pi=m.pi
+Tau=m.pi*2
+Inf=m.huge
+Deg=m.pi/180
+Sin=m.sin
+Cos=m.cos
+Tan=m.tan
+Acos=m.acos
+Asin=m.asin
+Atan=m.atan
+Sqrt=m.sqrt
+
+Max = m.max
+Min = m.min
+Floor = m.floor
+Ceil = m.ceil
+Abs = m.abs
 
 function Clamp(val, min, max) return Min(Max(val, min), max) end
 function Lerp(a, b, t) return a + (b - a) * t end
@@ -206,6 +208,7 @@ aimpoint = Vec(0,0,0)
 terminal_ticks = 0
 
 radar_enabled = false -- enable?
+radar_target = false
 
 terrain_points = {}
 
@@ -310,7 +313,9 @@ function onTick()
     else
         radar={x=input.getNumber(10),y=input.getNumber(11)}
     end
-    
+
+    if input.getNumber(10) ~= 0 or input.getNumber(11) ~= 0 then radar_target = true end
+
     -- main state machine
     if state == 0 then
         -- pre launch:
@@ -373,7 +378,7 @@ function onTick()
 
             -- generate aimpoint
             pitch_setpoint = Clamp((altitude_setpoint - self.y) * ALTITUDE_GAIN, -MAX_ANGLE, MAX_ANGLE) + AOA
-			aimpoint = Vec(g_delta.x, (math.tan(pitch_setpoint)) * Len(g_delta_flat), g_delta.z)
+			aimpoint = Vec(g_delta.x, (Tan(pitch_setpoint)) * Len(g_delta_flat), g_delta.z)
 
         elseif CRUISE_ALTITUDE == 2 then
             -- terrain avoidance (have some idea how to make this)

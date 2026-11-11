@@ -1,14 +1,14 @@
-Pi=math.pi
-Tau=math.pi*2
-Inf=math.huge
-Deg=math.pi/180
-Sin=math.sin
-Cos=math.cos
-Tan=math.tan
-Acos=math.acos
-Asin=math.asin
-Atan=math.atan
-Sqrt=math.sqrt
+Pi=m.pi
+Tau=m.pi*2
+Inf=m.huge
+Deg=m.pi/180
+Sin=m.sin
+Cos=m.cos
+Tan=m.tan
+Acos=m.acos
+Asin=m.asin
+Atan=m.atan
+Sqrt=m.sqrt
 
 
 --- @class vector
