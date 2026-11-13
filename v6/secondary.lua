@@ -63,19 +63,21 @@ function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
 
 -- Projects vectors from cartesian to spherical coordinates and vice versa
-function Sphere(A)return Vec(Atan(A.x,A.z),Atan(A.y,A.z),Len(A))end
-function Cartesian(A)local z_sign = Cos(A.x) < 0 and -1 or 1 local direction = Vec(Sin(A.x) * Cos(A.y) * z_sign,Sin(A.y) * Cos(A.x) * z_sign,Cos(A.x) * Cos(A.y) * z_sign)return Scale(Norm(direction), A.z)end
+function Sphere(A)local horizontal = Sqrt(A.x*A.x + A.z*A.z)return Vec(Atan(A.x,A.z), Atan(A.y,horizontal), Len(A))end
+function Cartesian(A)local horizontal = Cos(A.y) * A.z return Vec(Sin(A.x) * horizontal, Sin(A.y) * A.z, Cos(A.x) * horizontal)end
 
 RADAR_TYPE              =   property.getBool("Input Type")
 
 RADAR_PRIORITY          =   property.getNumber("Prioritise")
 TOLERANCE               =   property.getNumber("Tolerance")
 
-function onTick()
-    has_target = false
-    guidance = Vec(0, 0, 0)
+guidance = Vec(0, 0, 0)
 
-    if RADAR_TYPE == 1 then -- direct
+self = {}
+function onTick()
+    
+    if RADAR_TYPE == true then -- direct
+        guidance = Vec(0, 0, 0)
         guidance.x = input.getNumber(1)
         guidance.y = input.getNumber(2)
         if input.getNumber(1) ~= 0 or input.getNumber(2) ~= 0 then
@@ -83,60 +85,71 @@ function onTick()
         end
 
     else -- everything else
-        GPS = Vec(input.getNumber(4), input.getNumber(8), input.getNumber(12))
+        guidance = Vec(0, 0, 0)
+        self.GPS = Vec(input.getNumber(4), input.getNumber(8), input.getNumber(12))
+        self.IJK = IJK(input.getNumber(16), input.getNumber(20), input.getNumber(24))
+
         targets = {}
+        target_count = 0
 
-        if input.getBool(1) == true then -- there is a target
-            has_target = true
-
-            -- fetch all targets
-	        for i = 1, 8 do
-                if (input.getBool((i*4)-3)) then
-                    distance = input.getNumber((i*4)-3)
-                    radarX = input.getNumber((i*4)-2)
-                    radarY = input.getNumber((i*4)-1)
-                    targets[i] = Vec(radarX, radarY, distance)
+        -- fetch all targets
+        for i = 1, 8 do
+            if (input.getBool((i*4)-3)) then
+                distance = input.getNumber((i*4)-3)
+                radarX = input.getNumber((i*4)-2)
+                radarY = input.getNumber((i*4)-1)
+                target = Global(Cartesian(Vec(radarX*Pi, radarY*Pi, distance)), self.IJK)
+                if Len(Sub(target, self.GPS)) <= TOLERANCE then
+                    targets[i] = target
+                    target_count = target_count + 1
                     last_locked = i
                 end
             end
+        end
 
+        if target_count > 0 then
             if RADAR_PRIORITY == 0 then -- default
-                guidance = targets[1]
+                for i = 1, 8 do
+                    if targets[i] then
+                        guidance = targets[i]
+                        break
+                    end
+                end
+
             elseif RADAR_PRIORITY == 1 then -- closest to gps
                 lowest = Inf
                 candidate = Vec(0, 0, 0)
-
-                for target in targets do
-                    deviation = Len(Sub(Cartesian(target), GPS))
+                for _, target in pairs(targets) do
+                    deviation = Len(Sub(target, self.GPS))
                     if deviation < lowest then
+                        lowest = deviation
                         candidate = target
                     end
                 end
-
                 guidance = candidate
 
             elseif RADAR_PRIORITY == 2 then -- closest to missile
+            
                 lowest = Inf
                 candidate = Vec(0, 0, 0)
-
-                for target in targets do
-                    deviation = target.z -- distance
+                for _, target in pairs(targets) do
+                    deviation = Len(target)
                     if deviation < lowest then
+                        lowest = deviation
                         candidate = target
                     end
                 end
-
                 guidance = candidate
 
             elseif RADAR_PRIORITY == 3 then -- last in list
+            
                 guidance = targets[last_locked]
 
             elseif RADAR_PRIORITY == 4 then -- last in list within radius of gps
-                for i = #targets, 1, -1 do
-                    target = targets[i]
-                    deviation = Len(Sub(Cartesian(target), GPS))
-                    if deviation < TOLERANCE then
-                        guidance = target
+                for i = 8, 1, -1 do
+                    if targets[i] then
+                        guidance = targets[i]
+                        break
                     end
                 end
             end
@@ -145,6 +158,6 @@ function onTick()
 
     output.setNumber(1, guidance.x)
     output.setNumber(2, guidance.y)
-    if RADAR_TYPE == 0 then output.setNumber(3, guidance.z) end
-    output.setBool(1, has_target)
+    if RADAR_TYPE == false then output.setNumber(3, guidance.z) end
+    output.setNumber(4, target_count)
 end

@@ -63,8 +63,8 @@ function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
 
 -- Projects vectors from cartesian to spherical coordinates and vice versa
-function Sphere(A)return Vec(Atan(A.x,A.z),Atan(A.y,A.z),Len(A))end
-function Cartesian(A)local z_sign = Cos(A.x) < 0 and -1 or 1 local direction = Vec(Sin(A.x) * Cos(A.y) * z_sign,Sin(A.y) * Cos(A.x) * z_sign,Cos(A.x) * Cos(A.y) * z_sign)return Scale(Norm(direction), A.z)end
+function Sphere(A)local horizontal = Sqrt(A.x*A.x + A.z*A.z)return Vec(Atan(A.x,A.z), Atan(A.y,horizontal), Len(A))end
+function Cartesian(A)local horizontal = Cos(A.y) * A.z return Vec(Sin(A.x) * horizontal, Sin(A.y) * A.z, Cos(A.x) * horizontal)end
 
 -- PROPERTIES
 
@@ -249,11 +249,12 @@ EVADE_FREQUENCY         =   property.getNumber("Evade Frequency") / 60
 -- TERMINAL_ALTITUDE       =   property.getNumber("Pop-up Height")
 -- DIVE_ANGLE              =   property.getNumber("Dive Angle")
 
-RADAR_TYPE              =   property.getNumber("Input Type")
+RADAR_TYPE              =   property.getBool("Input Type")
 ALLOW_LOCK              =   property.getNumber("Allow Acquire")
 -- RADAR_PRIORITY          =   property.getNumber("Prioritise")
 -- TOLERANCE               =   property.getNumber("Tolerance")
 
+DIRECT_GAIN             =   property.getNumber("Direct Radar Gain")  
 
 X_GAIN                  =   property.getNumber("Yaw Gain")
 X_TRIM                  =   property.getNumber("Yaw Trim")
@@ -299,9 +300,9 @@ function onTick()
     -- local delta vector
     l_delta = Local(g_delta, self.IJK)
     -- send local offsets to radar LUA block for target prioritization
-    output.setNumber(5, l_delta.x)
-    output.setNumber(6, l_delta.y)
-    output.setNumber(7, l_delta.z)
+    output.setNumber(5, g_delta.x)
+    output.setNumber(6, g_delta.y)
+    output.setNumber(7, g_delta.z)
 
     -- turn on booster once the delay is up
     if elapsed > BOOST_DELAY then output.setBool(1, true) end
@@ -309,17 +310,22 @@ function onTick()
     output.setBool(2, radar_enabled) -- update radar state
 
     if RADAR_TYPE == true then -- is missile radar
-        radar={x=input.getNumber(10)*Pi/X_GAIN,y=input.getNumber(11)*Pi/Y_GAIN} -- makes sure the radar signal bypasses gain values
+        radar={x=input.getNumber(13)*Pi*DIRECT_GAIN/X_GAIN,y=input.getNumber(14)*Pi*DIRECT_GAIN/Y_GAIN} -- makes sure the radar signal bypasses gain values
+        if input.getNumber(13) ~= 0 or input.getNumber(14) ~= 0 then radar_target = true end
     else
         radar={x=input.getNumber(10),y=input.getNumber(11),z=input.getNumber(12)}
+        if input.getNumber(10) ~= 0 or input.getNumber(11) ~= 0 then radar_target = true end
     end
 
-    if input.getNumber(10) ~= 0 or input.getNumber(11) ~= 0 then radar_target = true end
 
-    
+    loft = Scale(Vec(0,1,0), Clamp(((Len(g_delta_flat) - MARGIN) * LOFT_ANGLE), 0, MAX_LOFT))
+    t_loft = Scale(Vec(0,1,0), Clamp(((Len(g_delta_flat) - MARGIN) * LOFT_ANGLE_TERMINAL), 0, MAX_LOFT_TERMINAL))
 
-    loft = Scale(Vec(0,1,0), Clamp((Len(g_delta_flat) - MARGIN * LOFT_ANGLE), 0, MAX_LOFT))
-    t_loft = Scale(Vec(0,1,0), Clamp((Len(g_delta_flat) - MARGIN * LOFT_ANGLE_TERMINAL), 0, MAX_LOFT_TERMINAL))
+    if radar_target == true then state = 4 end
+
+    if MODE == 2 then
+        if input.getNumber(7) ~= 0 then target = Vec(input.getNumber(7), input.getNumber(8), input.getNumber(9)) end
+    end
 
     -- main state machine
     if state == 0 then
@@ -404,7 +410,7 @@ function onTick()
             end
         end
 
-        if ALLOW_LOCK == 0 then radar_enabled = true end
+        if ALLOW_LOCK == 2 then radar_enabled = true end
 
         guidance = Sphere(Local(aimpoint, self.IJK))
 
@@ -440,13 +446,18 @@ function onTick()
 
         if ALLOW_LOCK == 1 then radar_enabled = true end
 
-        if radar_target == true then state = 4 end
+        
 
         guidance = Sphere(Local(aimpoint, self.IJK))
 
     elseif state == 4 then
         -- radar guidance
-        guidance = radar
+        debug_state = 10
+        if RADAR_TYPE == true then
+            guidance = radar
+        else
+            guidance = Sphere(Local(radar, self.IJK))
+        end
     end
 
     if launched and ROLL_CONTROL then
