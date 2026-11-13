@@ -435,9 +435,7 @@ function onTick()
             offset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks * EVADE_FREQUENCY)
             coffset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Cos(Tau * terminal_ticks * EVADE_FREQUENCY)
 
-            offsets = Add(Scale(side, offset), Scale(up, coffset))
-
-            aimpoint = Add(Add(g_delta, offsets), t_loft)
+            aimpoint = Add(Add(g_delta, Add(Scale(side, offset), Scale(up, coffset))), t_loft)
         end
 
         if ALLOW_LOCK == 1 then radar_enabled = true end
