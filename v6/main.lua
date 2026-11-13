@@ -227,7 +227,8 @@ ALTITUDE_MODE           =   property.getBool("Altitude Mode")
 ROLL_CONTROL            =   property.getBool("Active Roll Control")
 
 -- Direct, Level, Arc, Terrain
-ADD_HEIGHT_PER_DISTANCE =   Tan(property.getNumber("Loft") * Deg) -- loft ANGLE
+LOFT_ANGLE              =   Tan(property.getNumber("Loft") * Deg) -- loft ANGLE
+MAX_LOFT                =   property.getNumber("Loft Limit")
 CRUISE_PATTERN          =   property.getNumber("Cruise Pattern")
 CRUISE_ALTITUDE         =   property.getNumber("Altitude")
 MAX_ANGLE               =   property.getNumber("Max Angle") * Deg
@@ -237,7 +238,8 @@ FLATTEN_LARGE_TURN      =   property.getBool("Restrict Pitch During Turns")
 
 TERRAIN_MARGIN          =   property.getNumber("Terrain Follow Margin")
 
-ADD_HEIGHT_IN_TERMINAL  =   Tan(property.getNumber("Terminal Loft") * Deg)
+LOFT_ANGLE_TERMINAL     =   Tan(property.getNumber("Terminal Loft") * Deg)
+MAX_LOFT_TERMINAL       =   property.getNumber("Terminal Loft Limit")
 TERMINAL_DISTANCE       =   property.getNumber("Terminal Distance")
 TERMINAL_PATTERN        =   property.getNumber("Terminal Pattern")
 EVASION_ANGLE           =   Clamp(property.getNumber("Evasion Angle"), 0, 45) * Deg -- in degrees (clamped)
@@ -314,6 +316,11 @@ function onTick()
 
     if input.getNumber(10) ~= 0 or input.getNumber(11) ~= 0 then radar_target = true end
 
+    
+
+    loft = Scale(Vec(0,1,0), Clamp((Len(g_delta_flat) - MARGIN * LOFT_ANGLE), 0, MAX_LOFT))
+    t_loft = Scale(Vec(0,1,0), Clamp((Len(g_delta_flat) - MARGIN * LOFT_ANGLE_TERMINAL), 0, MAX_LOFT_TERMINAL))
+
     -- main state machine
     if state == 0 then
         -- pre launch:
@@ -360,7 +367,7 @@ function onTick()
 
         if CRUISE_PATTERN == 0 then
             -- direct
-            aimpoint = Add(g_delta, Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_PER_DISTANCE))
+            aimpoint = Add(g_delta, loft)
 
             debug_state = 5
 
@@ -408,7 +415,7 @@ function onTick()
 
         debug_state = 8
         if TERMINAL_PATTERN == 0 then
-            aimpoint = Add(g_delta, Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_IN_TERMINAL))
+            aimpoint = Add(g_delta, t_loft)
 
         elseif TERMINAL_PATTERN == 1 then
             -- evasive
@@ -417,7 +424,20 @@ function onTick()
             side = Norm(Vec(g_delta.z, 0, -g_delta.x))
 
             offset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks * EVADE_FREQUENCY)
-            aimpoint = Add(Add(g_delta, Scale(side, offset)), Scale(Vec(0,1,0), Clamp(Len(g_delta_flat) - MARGIN, 0, Inf) * ADD_HEIGHT_IN_TERMINAL))
+            
+            aimpoint = Add(Add(g_delta, Scale(side, offset)), t_loft)
+        elseif TERMINAL_PATTERN == 2 then
+            -- spiral (evasive 2)
+            debug_state = 9
+
+            side = Norm(Vec(g_delta.z, 0, -g_delta.x))
+            up = Vec(0, 1, 0)
+            offset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Sin(Tau * terminal_ticks * EVADE_FREQUENCY)
+            coffset = Clamp(Len(g_delta) - MARGIN, 0, Inf) * Tan(EVASION_ANGLE) * Cos(Tau * terminal_ticks * EVADE_FREQUENCY)
+
+            offsets = Add(Scale(side, offset), Scale(up, coffset))
+
+            aimpoint = Add(Add(g_delta, offsets), t_loft)
         end
 
         if ALLOW_LOCK == 1 then radar_enabled = true end
