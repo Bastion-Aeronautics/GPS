@@ -12,3 +12,6 @@
 - ⬛ Cruise mode: cruise, arc, direct
 
 - ✅ Flatten turn to prevent nose diving into the ground
+- ✅ Smart loft
+
+- ⬛ Radar target priority   NOTE: REWRITE ALL OF IT
