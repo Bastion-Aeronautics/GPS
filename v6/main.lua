@@ -443,7 +443,7 @@ function onTick()
     -- /Pi ensures that a target directly behind corresponds to an ouput of 1
     output.setNumber(1, Clamp((guidance.x/Pi * X_GAIN) + X_TRIM, -1, 1))   -- yaw
     output.setNumber(2, Clamp((guidance.y/Pi * Y_GAIN) + Y_TRIM, -1, 1))   -- pitch
-    output.setNumber(3, Clamp(((guidance.z)             * R_GAIN) + R_TRIM, -1, 1))   -- roll
+    output.setNumber(3, Clamp((guidance.z    * R_GAIN) + R_TRIM, -1, 1))   -- roll
     output.setNumber(4, debug_state)                                    -- the funny flavour text
     output.setNumber(8, Round(Len(g_delta)))                            -- distance to target
 end
