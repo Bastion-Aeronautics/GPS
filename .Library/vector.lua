@@ -1,18 +1,34 @@
-Pi=math.pi
-Tau=math.pi*2
-Sin=math.sin
-Cos=math.cos
-Tan=math.tan
-Acos=math.acos
-Asin=math.asin
-Atan=math.atan
-Sqrt=math.sqrt
+m=math
+
+Pi=m.pi
+Tau=m.pi*2
+Inf=m.huge
+Deg=m.pi/180
+Sin=m.sin
+Cos=m.cos
+Tan=m.tan
+Acos=m.acos
+Asin=m.asin
+Atan=m.atan
+Sqrt=m.sqrt
+
+Max = m.max
+Min = m.min
+Floor = m.floor
+Ceil = m.ceil
+Abs = m.abs
+
+function Clamp(val, min, max) return Min(Max(val, min), max) end
+function Lerp(a, b, t) return a + (b - a) * t end
+function Map(t, a, b, c, d) return ((t - a) / (b - a)) * (d - c) + c end -- map a-b to c-d according to t
+function Round(a) return Floor(a+0.5) end
 
 --- @class vector
+--- @field x number The x-coordinate of the vector.
+--- @field y number The y-coordinate of the vector.
+--- @field z number The z-coordinate of the vector.
+
 --- @function Creates a vector with x, y, and z components
---- @param x number The x-coordinate of the vector.
---- @param y number The y-coordinate of the vector.
---- @param z number The z-coordinate of the vector.
 --- @return vector
 function Vec(x,y,z)return{x=x,y=y,z=z}end
 
@@ -40,7 +56,6 @@ function Lerp(A,B,t)return Add(A,Scale(Sub(B,A),t))end
 --- @param rx number The x rotation in radians.
 --- @param ry number The y rotation in radians.
 --- @param rz number The z rotation in radians.
---- @return vector
 function IJK(rx,ry,rz)local cx,cy,cz=Cos(rx),Cos(ry),Cos(rz)local sx,sy,sz=Sin(rx),Sin(ry),Sin(rz) return Vec(Vec(cy*cz,cy*sz,-sy),Vec(-cx*sz+sx*sy*cz,cx*cz+sx*sy*sz,sx*cy),Vec(cx*sy*cz+sx*sz,cx*sy*sz-sx*cz,cx*cy))end
 
 -- Projects vectors from global to local space and vice versa
@@ -48,5 +63,5 @@ function Local(A,ijk)return Vec(Dot(A, ijk.x),Dot(A, ijk.y),Dot(A, ijk.z))end
 function Global(A,ijk)return Add(Scale(ijk.x, A.x),Add(Scale(ijk.y, A.y),Scale(ijk.z, A.z)))end
 
 -- Projects vectors from cartesian to spherical coordinates and vice versa
-function Sphere(A)return Vec(Atan(A.x,A.y),Asin(A.z/Len(A)),Len(A))end
-function Cartesian(A)return Vec(A.z*Cos(A.y)*Sin(A.x),A.z*Cos(A.y)*Cos(A.x),A.z*Sin(A.y))end
+function Sphere(A)local horizontal = Sqrt(A.x*A.x + A.z*A.z)return Vec(Atan(A.x,A.z), Atan(A.y,horizontal), Len(A))end
+function Cartesian(A)local horizontal = Cos(A.y) * A.z return Vec(Sin(A.x) * horizontal, Sin(A.y) * A.z, Cos(A.x) * horizontal)end

@@ -1,5 +1,14 @@
-Pi=math.pi
-Tau=math.pi*2
+m=math
+
+Pi=m.pi
+Tau=m.pi*2
+Inf=m.huge
+
+Max = m.max
+Min = m.min
+Floor = m.floor
+Ceil = m.ceil
+Abs = m.abs
 
 function Clamp(val, min, max) return math.min(math.max(val, min), max) end
 function Lerp(a, b, t) return a + (b - a) * t end
