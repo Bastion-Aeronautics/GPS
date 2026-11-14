@@ -1,2 +1,2 @@
 # GPS Guided Munitions
-Any sort of missile or drone system involving going from A to B
+We're the best and brightest at making mediocre missiles in stormworks
